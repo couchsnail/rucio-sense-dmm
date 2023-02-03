@@ -1,24 +1,28 @@
-import os
 import yaml
 import logging
 from multiprocessing.connection import Listener
 from dmm.site import Site
 from dmm.request import Request
 from dmm.orchestrator import Orchestrator
+from dmm.monit import FTSmonit
+from dmm.sql.session import SQLSession
 
 class DMM:
     def __init__(self, n_workers=4):
+        self.dbsession = SQLSession()
         self.orchestrator = Orchestrator(n_workers=n_workers)
         self.sites = {}
         self.requests = {}
         with open("config.yaml", "r") as f_in:
             dmm_config = yaml.safe_load(f_in).get("dmm")
-            self.host = os.environ.get("DMM_HOST", "localhost")
-            self.port = int(os.environ.get("DMM_PORT", 5000))
+            self.host = dmm_config.get("host", "localhost")
+            self.port = dmm_config.get("port", 5000)
             authkey_file = dmm_config.get("authkey", "")
             self.monitoring = dmm_config.get("monitoring", True)
         with open(authkey_file, "rb") as f_in:
             self.authkey = f_in.read()
+        if self.monitoring:
+            self.ftsmonit = FTSmonit()
 
     def __dump(self):
         for request in self.requests.values():
@@ -33,6 +37,10 @@ class DMM:
         return
 
     def start(self):
+        # Restore state if database is not empty
+        if self.dbsession.query_db():
+            self.requests = self.dbsession.restore_from_curr_state()
+        # Start listener
         listener = Listener((self.host, self.port), authkey=self.authkey)
         while True:
             logging.info("Waiting for the next connection")
@@ -125,6 +133,8 @@ class DMM:
                 # Create new Request
                 request = Request(rule_id, src_site, dst_site, **request_attr)
                 request.register()
+                # Update DB
+                self.dbsession.add_request(request)
                 # Store new request and its corresponding link
                 self.requests[request_id] = request
 
@@ -163,17 +173,11 @@ class DMM:
                     req.priority = report["priority"]
                     n_priority_changes += 1
                 # Get SENSE link endpoints
-                if req.best_effort:
-                    sense_map[rule_id][rse_pair_id] = {
-                        req.src_site.rse_name: req.src_site.default_ipv6,
-                        req.dst_site.rse_name: req.dst_site.default_ipv6
-                    }
-                else:
-                    sense_map[rule_id][rse_pair_id] = {
-                        # block_to_ipv6 translation is a hack; should not be needed in the future
-                        req.src_site.rse_name: req.src_site.block_to_ipv6[req.src_ipv6],
-                        req.dst_site.rse_name: req.dst_site.block_to_ipv6[req.dst_ipv6]
-                    }
+                sense_map[rule_id][rse_pair_id] = {
+                    # block_to_ipv6 translation is a hack; should not be needed in the future
+                    req.src_site.rse_name: req.src_site.block_to_ipv6[req.src_ipv6],
+                    req.dst_site.rse_name: req.dst_site.block_to_ipv6[req.dst_ipv6]
+                }
 
         if n_priority_changes > 0:
             self.update_requests("adjusting for priority update")
@@ -206,6 +210,10 @@ class DMM:
                 src_rse_name, dst_rse_name = rse_pair_id.split("&")
                 request_id = Request.id(rule_id, src_rse_name, dst_rse_name)
                 request = self.requests[request_id]
+                # # Check performance and request logs
+                if self.use_monit:
+                    if not request.perf_eval(): 
+                        self.ftsmonit.log_request(report["external_ids"])
                 # Update request
                 request.n_transfers_finished += report["n_transfers_finished"]
                 request.n_bytes_transferred += report["n_bytes_transferred"]
@@ -217,6 +225,7 @@ class DMM:
                     self.orchestrator.put(request_id, DMM.link_closer, closer_args)
                     n_link_closures += 1
                     # Clean up
+                    self.dbsession.delete_request(request)
                     self.requests.pop(request_id)
 
         if n_link_closures > 0:

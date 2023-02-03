@@ -114,6 +114,15 @@ class Request:
                 self.dst_site.get_uplink_provision(self.src_site.rse_name),
                 self.theoretical_bandwidth
             )
+    
+    def perf_eval(self):
+        """Compares average throughput with the allocated bandwidth
+
+        returns True if performance above acceptance threshold
+        80% acceptance hard coded, #TODO
+        """
+        promise, actual  = self.get_summary(monitoring=True)
+        return (actual > (0.8 * promise))
 
     def get_bandwidth_fraction(self):
         """Return bandwidth fraction
