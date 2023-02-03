@@ -28,6 +28,6 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         push: true
-        context: dmm/monit/
+        context: dmm/
         file: etc/Dockerfile
         tags: aaarora/dmm-monit:latest
