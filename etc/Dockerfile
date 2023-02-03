@@ -7,6 +7,6 @@ RUN python3 -m ensurepip
 RUN pip3 install --no-cache --upgrade pip setuptools
 RUN pip3 install --no-cache pyyaml fastapi "uvicorn[standard]" python-multipart
 
-COPY ./app /app
+COPY ./monit /app
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "app.server:app", "--host", "0.0.0.0", "--port", "80"]
