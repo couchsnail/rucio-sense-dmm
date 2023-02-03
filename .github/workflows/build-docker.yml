@@ -30,4 +30,4 @@ jobs:
         push: true
         context: dmm/dmm/monit/
         file: etc/Dockerfile
-        tags: 
+        tags: aaarora/dmm-monit:latest
