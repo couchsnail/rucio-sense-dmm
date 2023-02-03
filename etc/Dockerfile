@@ -9,4 +9,4 @@ RUN pip3 install --no-cache pyyaml fastapi "uvicorn[standard]" python-multipart
 
 COPY ./monit /app
 
-CMD ["uvicorn", "app.server:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "80"]
