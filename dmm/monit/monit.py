@@ -19,7 +19,7 @@ class MonitConfig():
         self.prometheus_addr = f"http://{prometheus_host}:{prometheus_port}"
         # self.ftsmonit_addr = f"http://{ftsmonit_host}:{ftsmonit_port}"
 
-def submit_prom_query(config, query_dict) -> dict:
+def submit_query(config, query_dict) -> dict:
     endpoint = "api/v1/query"
     query_addr = f"{config.prometheus_addr}/{endpoint}"
     return requests.get(query_addr, params=query_dict).json()
