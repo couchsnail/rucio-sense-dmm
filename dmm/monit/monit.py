@@ -29,7 +29,7 @@ def get_val_from_response(response):
     return response["data"]["result"][0]["value"][1]
     
 def get_interface(config, ipv6) -> str:
-    response = submit_query(config.prometheus_addr, {"query": "node_network_address_info"})
+    response = submit_query(config, {"query": "node_network_address_info"})
     if response["status"] == "success":
         for metric in response["data"]["result"]:
             if metric["metric"]["address"] == ipv6:
