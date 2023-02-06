@@ -44,7 +44,7 @@ def get_total_bytes_at_t(config, time, device, instance, rse_name) -> float:
     params = f"device=\"{device}\",instance=\"{instance}\",job=~\".*{rse_name}.*\""
     metric = f"node_network_transmit_bytes_total{{{params}}}"
     # Get bytes transferred at the start time
-    response = submit_query(config.prometheus_addr, {"query": metric, "time": time})
+    response = submit_query(config, {"query": metric, "time": time})
     if response["status"] == "success":
         bytes_at_t = get_val_from_response(response)
     else:
