@@ -22,6 +22,9 @@ spec:
     spec:
       containers:
         - name: dmm-monit
+          env:
+          - name: MONIT_CONFIG
+            value: /app/config.yaml
           image: aaarora/dmm-monit:latest
           imagePullPolicy: Always
           ports:
@@ -33,6 +36,10 @@ spec:
             requests:
               cpu: 1
               memory: 1Gi
+          volumeMounts:
+          - name: config
+            subPath: config.yaml
+            mountPath: /app/config.yaml
       dnsPolicy: Default
       tolerations:
       - key: "nautilus.io/noceph" 
@@ -50,3 +57,10 @@ spec:
       restartPolicy: Always
       schedulerName: default-scheduler
       terminationGracePeriodSeconds: 30
+      volumes:
+      - name: config
+        configMap:
+          name: monit-config
+          items:
+          - key: config.yaml
+            path: config.yaml
