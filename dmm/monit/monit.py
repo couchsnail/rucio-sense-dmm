@@ -35,7 +35,7 @@ def get_interface(config, ipv6) -> str:
             if metric["metric"]["address"] == ipv6:
                 return [metric["metric"]["device"], metric["metric"]["instance"]]
 
-def get_total_bytes_at_t(time, device, instance, rse_name) -> float:
+def get_total_bytes_at_t(config, time, device, instance, rse_name) -> float:
     """
     Returns the total number of bytes transmitted from a given Rucio RSE via a given
     ipv6 address
