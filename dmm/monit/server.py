@@ -7,7 +7,7 @@ app = FastAPI()
 
 m = MonitConfig(configfile=environ.get("MONIT_CONFIG"))
 
-@app.post("/query")
+@app.get("/query")
 def get_total_bytes(ipv6: str, rse_name: str):
     dev, int = get_interface(endpoint_1)
-    return get_total_bytes_at_t(time(), dev, instance, rse_name)    
+    return get_total_bytes_at_t(time(), dev, instance, rse_name)
