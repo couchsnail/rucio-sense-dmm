@@ -9,5 +9,5 @@ m = MonitConfig(configfile=environ.get("MONIT_CONFIG"))
 
 @app.get("/query")
 def get_total_bytes(ipv6: str, rse_name: str):
-    dev, int = get_interface(m, ipv6)
+    dev, instance = get_interface(m, ipv6)
     return get_total_bytes_at_t(m, time(), dev, instance, rse_name)
