@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from monit import get_throughput_at_t
+from monit import *
 from os import environ
 from time import time
 
