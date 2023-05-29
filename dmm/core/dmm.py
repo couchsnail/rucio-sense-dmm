@@ -1,11 +1,13 @@
-import yaml
+from dmm.utils.config import config_get, config_get_bool, config_get_int
+
+from dmm.core.site import Site
+from dmm.core.request import Request
+from dmm.core.orchestrator import Orchestrator
+
+from dmm.sql.session import SQLSession
+
 import logging
 from multiprocessing.connection import Listener
-from dmm.site import Site
-from dmm.request import Request
-from dmm.orchestrator import Orchestrator
-from dmm.monit import FTSmonit
-from dmm.sql.session import SQLSession
 
 class DMM:
     def __init__(self, n_workers=4):
@@ -13,16 +15,9 @@ class DMM:
         self.orchestrator = Orchestrator(n_workers=n_workers)
         self.sites = {}
         self.requests = {}
-        with open("config.yaml", "r") as f_in:
-            dmm_config = yaml.safe_load(f_in).get("dmm")
-            self.host = dmm_config.get("host", "localhost")
-            self.port = dmm_config.get("port", 5000)
-            authkey_file = dmm_config.get("authkey", "")
-            self.monitoring = dmm_config.get("monitoring", True)
-        with open(authkey_file, "rb") as f_in:
-            self.authkey = f_in.read()
-        if self.monitoring:
-            self.ftsmonit = FTSmonit()
+        self.host = config_get("dmm", "host", default='localhost')
+        self.port = config_get_int("dmm", "port", default=5000)
+        self.monitoring = config_get_bool("dmm", "monitoring", default=False)
 
     def __dump(self):
         for request in self.requests.values():
@@ -41,7 +36,7 @@ class DMM:
         if self.dbsession.query_db():
             self.requests = self.dbsession.restore_from_curr_state()
         # Start listener
-        listener = Listener((self.host, self.port), authkey=self.authkey)
+        listener = Listener((self.host, self.port))
         while True:
             logging.info("Waiting for the next connection")
             with listener.accept() as connection:

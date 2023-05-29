@@ -1,6 +1,6 @@
 import time
-import dmm.sense_api as sense_api
-from dmm.prometheus import Prometheus
+import dmm.core.sense_api as sense_api
+from dmm.monit.monit import get_average_throughput
 
 class Request:
     def __init__(self, rule_id, src_site, dst_site, transfer_ids, priority, 
@@ -27,7 +27,6 @@ class Request:
         self.dst_ipv6 = ""
         self.bandwidth = 0
         self.history = [(time.time(), self.bandwidth, 0, "init")]
-        self.prometheus = Prometheus()
         self.sense_link_id = ""
         self.theoretical_bandwidth = -1
 
@@ -43,7 +42,7 @@ class Request:
         time_last, _, _, _ = self.history[-1]
         time_now = time.time()
         if monitoring:
-            actual_bandwidth = self.prometheus.get_average_throughput(
+            actual_bandwidth = get_average_throughput(
                 self.src_site.block_to_ipv6[self.src_ipv6].split(']')[0][1:],
                 self.src_site.rse_name,
                 time_last,
@@ -59,7 +58,7 @@ class Request:
         dts = [t - times[t_i] for t_i, t in enumerate(times[1:])]
         avg_promise = sum([bw*dt for bw, dt in zip(promised_bw, dts)])/sum(dts)
         if monitoring:
-            avg_actual = self.prometheus.get_average_throughput(
+            avg_actual = get_average_throughput(
                 self.src_site.block_to_ipv6[self.src_ipv6], # block_to_ipv6 is a temporary hack
                 self.src_site.rse_name,
                 times[1], # times[1] is when the link is actually provisioned

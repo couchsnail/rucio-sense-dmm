@@ -1,6 +1,8 @@
 import yaml
+
 import logging
-import dmm.sense_api as sense_api
+import dmm.core.sense_api as sense_api
+from dmm.utils.config import config_get
 
 class Site:
     def __init__(self, rse_name):
@@ -12,10 +14,11 @@ class Site:
         self.prio_sums = {}
         self.all_prios_sum = 0
         # Read site information from config.yaml; should not be needed in the future
-        with open("config.yaml", "r") as f_in:
+        self.sites_conf = config_get("dmm", "sites", defaults="/opt/dmm/sites.yaml")
+        with open(self.sites_conf, "r") as f_in:
             site_config = yaml.safe_load(f_in).get("sites").get(rse_name)
             if not site_config:
-                logging.error(f"no config for {rse_name} in config.yaml!")
+                logging.error(f"no config for {rse_name} in sites.yaml!")
 
         # Best effort IPv6 may be extracted from elsewhere in the future
         self.default_ipv6 = site_config.get("best_effort_ipv6")

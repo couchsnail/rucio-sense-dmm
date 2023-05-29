@@ -1,7 +1,8 @@
 import json
-import yaml
+from dmm.utils.config import config_get
 import re
 import logging
+
 from sense.client.workflow_combined_api import WorkflowCombinedApi
 from sense.client.profile_api import ProfileApi
 from sense.client.discover_api import DiscoverApi
@@ -11,10 +12,7 @@ PROFILE_UUID = ""
 def get_profile_uuid():
     global PROFILE_UUID
     if PROFILE_UUID == "":
-        with open("config.yaml", "r") as f_in:
-            sense_config = yaml.safe_load(f_in).get("sense")
-            PROFILE_UUID = sense_config.get("profile_uuid")
-
+        PROFILE_UUID = config_get("sense", "profile_uuid")
     return PROFILE_UUID
 
 def good_response(response):

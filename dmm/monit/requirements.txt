@@ -1,5 +1,0 @@
-pyyaml 
-fastapi 
-uvicorn[standard] 
-python-multipart
-requests
