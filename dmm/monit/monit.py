@@ -88,9 +88,9 @@ def prom_get_throughput_at_t(config, time, device, instance, rse_name, t_avg_ove
 
 
 
-if __name__ == "__main__":
-    configfile = "./config.yaml"
-    m = MonitConfig(configfile)
-    a = prom_get_total_bytes_at_t(m, time.time(), 'vlan.4071', 'k8s-gen4-02.sdsc.optiputer.net:9100', 'T2_US_SDSC')
-    b = prom_get_throughput_at_t(m, time.time()-30000, 'vlan.4071', 'k8s-gen4-02.sdsc.optiputer.net:9100', 'T2_US_SDSC', t_avg_over=1000)
-    print(b)
+# if __name__ == "__main__":
+#     configfile = "./config.yaml"
+#     m = MonitConfig(configfile)
+#     a = prom_get_total_bytes_at_t(m, time.time(), 'vlan.4071', 'k8s-gen4-02.sdsc.optiputer.net:9100', 'T2_US_SDSC')
+#     b = prom_get_throughput_at_t(m, time.time()-30000, 'vlan.4071', 'k8s-gen4-02.sdsc.optiputer.net:9100', 'T2_US_SDSC', t_avg_over=1000)
+#     print(b)

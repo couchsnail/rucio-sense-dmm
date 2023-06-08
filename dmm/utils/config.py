@@ -13,11 +13,11 @@ class Config:
         else:
             confdir = '/opt/dmm'
             config = os.path.join(confdir, 'dmm.cfg')
-            self.configfile = os.path.exists(config)
+            self.configfile = config if os.path.exists(config) else None
             if not self.configfile:
                 raise RuntimeError('Could not load DMM configuration file.')
-
-        if not self.parser.read(self.configfile) == [self.configfile]:
+            
+            if not self.parser.read(self.configfile) == [self.configfile]:
                 raise RuntimeError('Could not load DMM configuration file.')
 
 def get_config():

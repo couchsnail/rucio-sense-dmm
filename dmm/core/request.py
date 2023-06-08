@@ -1,6 +1,6 @@
 import time
 import dmm.core.sense_api as sense_api
-from dmm.monit.monit import get_average_throughput
+from dmm.monit.monit import prom_get_throughput_at_t
 
 class Request:
     def __init__(self, rule_id, src_site, dst_site, transfer_ids, priority, 
@@ -42,7 +42,7 @@ class Request:
         time_last, _, _, _ = self.history[-1]
         time_now = time.time()
         if monitoring:
-            actual_bandwidth = get_average_throughput(
+            actual_bandwidth = prom_get_throughput_at_t(
                 self.src_site.block_to_ipv6[self.src_ipv6].split(']')[0][1:],
                 self.src_site.rse_name,
                 time_last,

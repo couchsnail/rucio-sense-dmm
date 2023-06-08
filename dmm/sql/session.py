@@ -1,25 +1,21 @@
 from datetime import datetime
 from os import environ as env
-import yaml
 import logging
 
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from dmm.sql.model import BaseSchema
 
-from dmm.request import Request
-from dmm.site import Site
+from dmm.core.request import Request
+from dmm.core.site import Site
+from dmm.utils.config import config_get
 
 class SQLSession(object):
     def __init__(self):
         Session = sessionmaker()
-
-        with open("config.yaml", "r") as f_in:
-            dmm_config = yaml.safe_load(f_in).get("sql_db")
-            self.db_hostname = dmm_config.get("host", "ruciodb") 
-
+        self.db_name = config_get("dmm_db", "db_name", default="ruciodb")
         _ENGINE = create_engine(
-            f"postgresql://rucio:secret@{self.db_hostname}/rucio")
+            f"postgresql://rucio:secret@{self.db_name}/rucio")
         Session.configure(bind=_ENGINE)
         BaseSchema.metadata.create_all(_ENGINE)
         logging.info("Initializing database")
