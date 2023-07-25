@@ -26,7 +26,7 @@ class MonitConfig():
         self.fts_host = config_get("fts-monit", "host")
         fts_token = config_get("fts-monit", "auth_token")
         self.fts_session = Session()
-        self.fts_session.headers.update({'Authorization': 'Bearer {}'.format(fts_token), 'Content-Type': 'application/json'})
+        self.fts_session.headers.update({"Authorization": "Bearer {}".format(fts_token), "Content-Type": "application/json"})
 
 # Helper functions
 def prom_submit_query(config, query_dict) -> dict:
@@ -66,10 +66,32 @@ def prom_get_throughput_at_t(config, time, device, instance, rse_name, t_avg_ove
     # TODO account for bin edges
     return bytes_transmitted / (t_avg_over)
 
-def fts_submit_query(config, query_dict)
+def fts_get_val_from_response(response):
+    """Extract desired value from typical location in Prometheus response"""
+    return response["hits"]["hits"][0]["_source"]["data"]
 
-# if __name__ == "__main__":
-#     m = MonitConfig()
-#     a = prom_get_total_bytes_at_t(m, time.time(), 'vlan.4071', 'k8s-gen4-02.sdsc.optiputer.net', 'T2_US_SDSC')
-#     b = prom_get_throughput_at_t(m, time.time()-30000, 'vlan.4071', 'k8s-gen4-02.sdsc.optiputer.net:9100', 'T2_US_SDSC', t_avg_over=1000)
-#     print(b)
+def fts_submit_job_query(config, job_id):
+    endpoint = "api/datasources/proxy/9233/monit_prod_fts_enr_complete*/_search"
+    query_addr = f"{config.fts_host}/{endpoint}"
+    data = {
+        "size":1,
+        "query":{
+            "bool":{
+                "filter":[
+                    {"query_string":{
+                        "analyze_wildcard":"true",
+                        "query":f"data.job_id:{job_id}"
+                        }
+                    }
+                ]
+            }
+        },
+        "_source": ['data.tr_timestamp_start', 'data.tr_timestamp_complete']
+    }
+    data_string = json.dumps(data)
+    response = config.fts_session.get(query_addr, data=data_string).json()
+    timestamps = fts_get_val_from_response(response)
+    return timestamps
+
+m = MonitConfig()
+fts_submit_job_query(m, "1e420cc4-2b18-11ee-a358-fa163ece561c")
