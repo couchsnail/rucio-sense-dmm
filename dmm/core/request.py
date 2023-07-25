@@ -1,6 +1,5 @@
 import time
 import dmm.core.sense_api as sense_api
-from dmm.monit.monit import prom_get_throughput_at_t
 
 class Request:
     def __init__(self, rule_id, src_site, dst_site, transfer_ids, priority, 
@@ -26,7 +25,6 @@ class Request:
         self.src_ipv6 = ""
         self.dst_ipv6 = ""
         self.bandwidth = 0
-        self.history = [(time.time(), self.bandwidth, 0, "init")]
         self.sense_link_id = ""
         self.theoretical_bandwidth = -1
 
@@ -36,40 +34,6 @@ class Request:
 
     def __str__(self):
         return f"Request({self.request_id})"
-
-    def update_history(self, msg, monitoring=False):
-        """Track the promised and actual bandwidth"""
-        time_last, _, _, _ = self.history[-1]
-        time_now = time.time()
-        if monitoring:
-            actual_bandwidth = prom_get_throughput_at_t(
-                self.src_site.block_to_ipv6[self.src_ipv6].split(']')[0][1:],
-                self.src_site.rse_name,
-                time_last,
-                time_now
-            )
-        else:
-            actual_bandwidth = -1
-        self.history.append((time_now, self.bandwidth, actual_bandwidth, msg))
-
-    def get_summary(self, string=False, monitoring=False):
-        """Return the average promised and actual bandwidth"""
-        times, promised_bw, actual_bw, _ = zip(*self.history)
-        dts = [t - times[t_i] for t_i, t in enumerate(times[1:])]
-        avg_promise = sum([bw*dt for bw, dt in zip(promised_bw, dts)])/sum(dts)
-        if monitoring:
-            avg_actual = get_average_throughput(
-                self.src_site.block_to_ipv6[self.src_ipv6], # block_to_ipv6 is a temporary hack
-                self.src_site.rse_name,
-                times[1], # times[1] is when the link is actually provisioned
-                times[-1]
-            )
-        else:
-            avg_actual = -1
-        if string:
-            return f"{avg_promise:0.1f}, {avg_actual:0.1f} (promised, actual bandwidth [Mb/s])"
-        else:
-            return avg_promise, avg_actual
 
     def register(self):
         """Register new request at the source and destination sites
@@ -113,15 +77,6 @@ class Request:
                 self.dst_site.get_uplink_provision(self.src_site.rse_name),
                 self.theoretical_bandwidth
             )
-    
-    def perf_eval(self):
-        """Compares average throughput with the allocated bandwidth
-
-        returns True if performance above acceptance threshold
-        80% acceptance hard coded, #TODO
-        """
-        promise, actual  = self.get_summary(monitoring=True)
-        return (actual > (0.8 * promise))
 
     def get_bandwidth_fraction(self):
         """Return bandwidth fraction

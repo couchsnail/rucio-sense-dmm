@@ -11,13 +11,15 @@ from multiprocessing.connection import Listener
 
 class DMM:
     def __init__(self, n_workers=4):
+        # Config attrs
+        self.host = config_get("dmm", "host", default='localhost')
+        self.port = config_get_int("dmm", "port", default=5000)
+        self.monitoring = config_get_bool("dmm", "monitoring", default=False)
+
         self.dbsession = SQLSession()
         self.orchestrator = Orchestrator(n_workers=n_workers)
         self.sites = {}
         self.requests = {}
-        self.host = config_get("dmm", "host", default='localhost')
-        self.port = config_get_int("dmm", "port", default=5000)
-        self.monitoring = config_get_bool("dmm", "monitoring", default=False)
 
     def __dump(self):
         for request in self.requests.values():
@@ -65,16 +67,11 @@ class DMM:
         # Update metadata
         if changed and not request.best_effort:
             logging.debug(f"{request} | {old_bandwidth} --> {request.bandwidth}; {msg}")
-        request.update_history(msg, monitoring=monitoring)
 
     @staticmethod
     def link_closer(request, monitoring):
         logging.debug(f"{request} | closing link")
         request.close_link()
-        request.update_history("closing link", monitoring=monitoring)
-        # Log the promised and actual bandwidths
-        summary = request.get_summary(string=True, monitoring=monitoring)
-        logging.info(f"{request} | {summary}; closed")
 
     def update_requests(self, msg):
         """Update bandwidth provisions for all links"""
