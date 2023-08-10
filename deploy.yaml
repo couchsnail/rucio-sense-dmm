@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dmm
+spec:
+  hostNetwork: true
+  containers:
+  - name: dmm
+    image: aaarora/dmm:latest
+    command: ['sh', '-c', 'sleep infinity']
+    volumeMounts: 
+      - name: config
+        mountPath: /opt/dmm/dmm.cfg
+        subPath: dmm.cfg
+  nodeSelector:
+    kubernetes.io/hostname: nrp-01.nrp-nautilus.io
+  volumes:
+    - name: config
+      secret:
+        secretName: dmm-config
