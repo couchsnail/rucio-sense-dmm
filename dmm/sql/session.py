@@ -13,9 +13,7 @@ from dmm.utils.config import config_get
 class SQLSession(object):
     def __init__(self):
         Session = sessionmaker()
-        self.db_name = config_get("dmm_db", "db_name", default="ruciodb")
-        _ENGINE = create_engine(
-            f"postgresql://rucio:secret@{self.db_name}/rucio")
+        _ENGINE = create_engine("sqlite:///dmm.db")
         Session.configure(bind=_ENGINE)
         BaseSchema.metadata.create_all(_ENGINE)
         logging.info("Initializing database")

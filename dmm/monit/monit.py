@@ -92,6 +92,3 @@ def fts_submit_job_query(config, job_id):
     response = config.fts_session.get(query_addr, data=data_string).json()
     timestamps = fts_get_val_from_response(response)
     return timestamps
-
-m = MonitConfig()
-fts_submit_job_query(m, "1e420cc4-2b18-11ee-a358-fa163ece561c")

@@ -3,7 +3,6 @@ from dmm.utils.config import config_get, config_get_bool, config_get_int
 from dmm.core.site import Site
 from dmm.core.request import Request
 from dmm.core.orchestrator import Orchestrator
-
 from dmm.sql.session import SQLSession
 
 import logging
@@ -36,7 +35,7 @@ class DMM:
     def start(self):
         # Restore state if database is not empty
         if self.dbsession.query_db():
-            self.requests = self.dbsession.restore_from_curr_state()
+           self.requests = self.dbsession.restore_from_curr_state()
         # Start listener
         listener = Listener((self.host, self.port))
         while True:
@@ -203,9 +202,7 @@ class DMM:
                 request_id = Request.id(rule_id, src_rse_name, dst_rse_name)
                 request = self.requests[request_id]
                 # # Check performance and request logs
-                if self.use_monit:
-                    if not request.perf_eval(): 
-                        self.ftsmonit.log_request(report["external_ids"])
+                report["external_ids"]
                 # Update request
                 request.n_transfers_finished += report["n_transfers_finished"]
                 request.n_bytes_transferred += report["n_bytes_transferred"]

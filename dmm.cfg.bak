@@ -5,9 +5,6 @@ authkey=
 monitoring=
 sites=
 
-[dmm_db]
-db_name=
-
 [sense]
 profile_uuid=
 
