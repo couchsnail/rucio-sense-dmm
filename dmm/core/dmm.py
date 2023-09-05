@@ -3,10 +3,10 @@ from dmm.utils.config import config_get, config_get_bool, config_get_int
 from dmm.core.site import Site
 from dmm.core.request import Request
 from dmm.core.orchestrator import Orchestrator
-from dmm.sql.session import SQLSession
 
 import logging
-from multiprocessing.connection import Listener
+import socket
+import json
 
 class DMM:
     def __init__(self, n_workers=4):
@@ -15,7 +15,6 @@ class DMM:
         self.port = config_get_int("dmm", "port", default=5000)
         self.monitoring = config_get_bool("dmm", "monitoring", default=False)
 
-        self.dbsession = SQLSession()
         self.orchestrator = Orchestrator(n_workers=n_workers)
         self.sites = {}
         self.requests = {}
@@ -33,25 +32,29 @@ class DMM:
         return
 
     def start(self):
-        # Restore state if database is not empty
-        if self.dbsession.query_db():
-           self.requests = self.dbsession.restore_from_curr_state()
         # Start listener
-        listener = Listener((self.host, self.port))
-        while True:
-            logging.info("Waiting for the next connection")
-            with listener.accept() as connection:
-                client_host, client_port = listener.last_accepted
-                logging.info(f"Connection accepted from {client_host}:{client_port}")
-                # Process payload from new connection
-                daemon, payload = connection.recv()
-                if daemon.upper() == "PREPARER":
-                    self.preparer_handler(payload)
-                elif daemon.upper() == "SUBMITTER":
-                    result = self.submitter_handler(payload)
-                    connection.send(result)
-                elif daemon.upper() == "FINISHER":
-                    self.finisher_handler(payload)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+            listener.bind((self.host, self.port))
+            listener.listen(1)
+            while True:
+                logging.info("Waiting for the next connection")
+                connection, address = listener.accept()
+                with connection:
+                    logging.info(f"Connection accepted from {address}")
+                    # Process payload from new connection
+                    data = connection.recv(4096).decode()
+                    if not data:
+                        break
+                    data = json.loads(data)
+                    logging.info(f"Received {data}")
+                    daemon = data["daemon"]
+                    if daemon.upper() == "PREPARER":
+                        self.preparer_handler(data["data"])
+                    elif daemon.upper() == "SUBMITTER":
+                        result = self.submitter_handler(data["data"])
+                        connection.send(result.encode())
+                    elif daemon.upper() == "FINISHER":
+                        self.finisher_handler(data["data"])
 
     @staticmethod
     def link_updater(request, msg, monitoring):
@@ -105,6 +108,7 @@ class DMM:
             ...
         }
         """
+        logging.info("Starting Preparer Handler")
         for rule_id, prepared_rule in payload.items():
             for rse_pair_id, request_attr in prepared_rule.items():
                 src_rse_name, dst_rse_name = rse_pair_id.split("&")
@@ -124,12 +128,11 @@ class DMM:
                 # Create new Request
                 request = Request(rule_id, src_site, dst_site, **request_attr)
                 request.register()
-                # Update DB
-                self.dbsession.add_request(request)
                 # Store new request and its corresponding link
                 self.requests[request_id] = request
 
         self.update_requests("accommodating for new requests")
+        logging.info("Closing Preparer Handler")
 
     def submitter_handler(self, payload):
         """
@@ -149,6 +152,7 @@ class DMM:
             ...
         }
         """
+        logging.info("Starting Submitter Handler")
         n_priority_changes = 0
         sense_map = {}
         for rule_id, submitter_reports in payload.items():
@@ -173,7 +177,9 @@ class DMM:
         if n_priority_changes > 0:
             self.update_requests("adjusting for priority update")
 
-        return sense_map
+        data = json.dumps(sense_map)
+        logging.info("Closing Submitter Handler")
+        return data
 
     def finisher_handler(self, payload):
         """
@@ -194,6 +200,7 @@ class DMM:
             ...
         }
         """
+        logging.info("Starting Finisher Handler")
         n_link_closures = 0
         for rule_id, finisher_reports in payload.items():
             for rse_pair_id, report in finisher_reports.items():
@@ -214,8 +221,8 @@ class DMM:
                     self.orchestrator.put(request_id, DMM.link_closer, closer_args)
                     n_link_closures += 1
                     # Clean up
-                    self.dbsession.delete_request(request)
                     self.requests.pop(request_id)
 
         if n_link_closures > 0:
             self.update_requests("adjusting for request deletion")
+        logging.info("Closing Finisher Handler")

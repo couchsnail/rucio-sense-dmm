@@ -14,7 +14,7 @@ class Site:
         self.prio_sums = {}
         self.all_prios_sum = 0
         # Read site information from config.yaml; should not be needed in the future
-        self.sites_conf = config_get("dmm", "sites", defaults="/opt/dmm/sites.yaml")
+        self.sites_conf = config_get("dmm", "sites", default="/opt/dmm/sites.yaml")
         with open(self.sites_conf, "r") as f_in:
             site_config = yaml.safe_load(f_in).get("sites").get(rse_name)
             if not site_config:

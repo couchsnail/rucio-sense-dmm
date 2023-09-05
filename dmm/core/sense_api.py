@@ -38,7 +38,8 @@ def get_uplink_capacity(uri):
         raise ValueError(f"Discover query failed for {uri}")
     else:
         response = json.loads(response)
-        return float(response["peer_points"][0]["port_capacity"])
+        #return float(response["peer_points"][0]["port_capacity"])
+        return 10000
 
 def get_uri(rse_name, regex=".*?", full=False):
     """Return the SENSE URI for a given Rucio RSE"""

@@ -1,4 +1,3 @@
-import time
 import dmm.core.sense_api as sense_api
 
 class Request:
@@ -11,7 +10,7 @@ class Request:
         self.dst_site = dst_site # DMM Site object
 
         # Attributes unpacked from prepared_request["attr"]
-        self.transfer_ids = transfer_ids
+        self.transfer_ids = ",".join(transfer_ids)
         self.priority = priority
         self.n_bytes_total = n_bytes_total
         self.n_bytes_transferred = 0
@@ -27,6 +26,7 @@ class Request:
         self.bandwidth = 0
         self.sense_link_id = ""
         self.theoretical_bandwidth = -1
+        self.transfer_status = "" # (O)ngoing or (C)omplete
 
     @staticmethod
     def id(rule_id, src_rse_name, dst_rse_name):
