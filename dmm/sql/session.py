@@ -10,7 +10,7 @@ _MAKER, _ENGINE, _LOCK = None, None, Lock()
 def get_engine():
     global _ENGINE
     if not _ENGINE:
-        create_engine("sqlite:///dmm.db")
+        _ENGINE = create_engine("sqlite:///dmm.db")
     assert _ENGINE
     return _ENGINE
 

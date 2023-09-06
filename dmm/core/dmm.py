@@ -4,6 +4,7 @@ from dmm.core.site import Site
 from dmm.core.request import Request
 from dmm.core.orchestrator import Orchestrator
 
+import threading
 import logging
 import socket
 import json
@@ -31,30 +32,38 @@ class DMM:
         self.orchestrator.stop()
         return
 
+    def handle_client(self, connection, address):
+        try:
+            logging.info(f"Connection accepted from {address}")
+            data = connection.recv(4096).decode()
+            if not data:
+                return
+            data = json.loads(data)
+            logging.info(f"Received {data}")
+            daemon = data["daemon"]
+            if daemon.upper() == "PREPARER":
+                self.preparer_handler(data["data"])
+            elif daemon.upper() == "SUBMITTER":
+                result = self.submitter_handler(data["data"])
+                logging.debug(f"Sending {result} to Rucio Submitter")
+                connection.send(result.encode())
+            elif daemon.upper() == "FINISHER":
+                self.finisher_handler(data["data"])
+        except Exception as e:
+            logging.error(f"Error processing client {address}: {str(e)}")
+        finally:
+            connection.close()
+
     def start(self):
-        # Start listener
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
             listener.bind((self.host, self.port))
             listener.listen(1)
+            logging.info(f"Listening on {self.host}:{self.port}")
             while True:
                 logging.info("Waiting for the next connection")
                 connection, address = listener.accept()
-                with connection:
-                    logging.info(f"Connection accepted from {address}")
-                    # Process payload from new connection
-                    data = connection.recv(4096).decode()
-                    if not data:
-                        break
-                    data = json.loads(data)
-                    logging.info(f"Received {data}")
-                    daemon = data["daemon"]
-                    if daemon.upper() == "PREPARER":
-                        self.preparer_handler(data["data"])
-                    elif daemon.upper() == "SUBMITTER":
-                        result = self.submitter_handler(data["data"])
-                        connection.send(result.encode())
-                    elif daemon.upper() == "FINISHER":
-                        self.finisher_handler(data["data"])
+                client_thread = threading.Thread(target=self.handle_client, args=(connection, address))
+                client_thread.start()
 
     @staticmethod
     def link_updater(request, msg, monitoring):
