@@ -8,8 +8,6 @@ COPY ./ /opt/dmm
 
 ENV PYTHONPATH=/opt/dmm/
 
-ENV DMM_HOST=127.0.0.1
-ENV DMM_PORT=5000
 ENV DMM_CONFIG /opt/dmm/dmm.cfg
 
 ENTRYPOINT ["bin/dmm", "--loglevel", "debug"]
