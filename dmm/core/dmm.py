@@ -17,6 +17,7 @@ class DMM:
         self.monitoring = config_get_bool("dmm", "monitoring", default=False)
 
         self.orchestrator = Orchestrator(n_workers=n_workers)
+        self.lock = threading.Lock()
         self.sites = {}
         self.requests = {}
 
@@ -42,13 +43,16 @@ class DMM:
             logging.info(f"Received {data}")
             daemon = data["daemon"]
             if daemon.upper() == "PREPARER":
-                self.preparer_handler(data["data"])
+                with self.lock:
+                    self.preparer_handler(data["data"])
             elif daemon.upper() == "SUBMITTER":
-                result = self.submitter_handler(data["data"])
-                logging.debug(f"Sending {result} to Rucio Submitter")
-                connection.send(result.encode())
+                with self.lock:
+                    result = self.submitter_handler(data["data"])
+                    logging.debug(f"Sending {result} to Rucio Submitter")
+                    connection.send(result.encode())
             elif daemon.upper() == "FINISHER":
-                self.finisher_handler(data["data"])
+                with self.lock:
+                    self.finisher_handler(data["data"])
         except Exception as e:
             logging.error(f"Error processing client {address}: {str(e)}")
         finally:
