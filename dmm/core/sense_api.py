@@ -1,6 +1,7 @@
 import json
 import re
 import logging
+from time import sleep
 
 from dmm.utils.config import config_get
 
@@ -13,6 +14,7 @@ def get_profile_uuid():
     global PROFILE_UUID
     if PROFILE_UUID == "":
         PROFILE_UUID = config_get("sense", "profile_uuid")
+    logging.info(f"Using SENSE Profile: {PROFILE_UUID}")
     return PROFILE_UUID
 
 def good_response(response):
@@ -67,13 +69,14 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
     workflow_api = WorkflowCombinedApi()
     workflow_api.instance_new() if instance_uuid == "" else setattr(workflow_api, "si_uuid", instance_uuid)
     intent = {
-        "service_profile_uuid": PROFILE_UUID,
+        "service_profile_uuid": get_profile_uuid(),
         "queries": [
             {
                 "ask": "edit",
                 "options": [
                     {"data.connections[0].terminals[0].uri": src_uri}, {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
-                    {"data.connections[0].terminals[1].uri": dst_uri}, {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                    {"data.connections[0].terminals[1].uri": dst_uri}, {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6}
+                    {"data.connections[0].terminals[0].vlan_tag": "3895-3899"}, {"data.connections[0].terminals[1].vlan_tag": "3895-3899"}
                 ]
             },
             {"ask": "maximum-bandwidth", "options": [{"name": "Connection 1"}]}
@@ -96,7 +99,7 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
     workflow_api = WorkflowCombinedApi()
     workflow_api.si_uuid = instance_uuid
     intent = {
-        "service_profile_uuid": PROFILE_UUID,
+        "service_profile_uuid": get_profile_uuid(),
         "queries": [
             {
                 "ask": "edit",
@@ -104,6 +107,8 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
                     {"data.connections[0].bandwidth.capacity": str(bandwidth)},
                     {"data.connections[0].terminals[0].uri": src_uri}, {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri}, {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                    {"data.connections[0].terminals[1].uri": dst_uri}, {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6}
+                    {"data.connections[0].terminals[0].vlan_tag": "3895-3899"}, {"data.connections[0].terminals[1].vlan_tag": "3895-3899"}
                 ]
             }
         ]
@@ -125,9 +130,13 @@ def delete_link(instance_uuid):
         raise ValueError(f"Cannot cancel an instance in status '{status}'")
     workflow_api.instance_operate("cancel", si_uuid=instance_uuid, sync="true", force=str("READY" not in status).lower())
     status = workflow_api.instance_get_status(si_uuid=instance_uuid)
-    if "CANCEL - READY" in status:
+    total_time = 0
+    while "CANCEL - READY" not in status and total_time < 30:
+        sleep(5)
+        total_time += 5
+    try:
         workflow_api.instance_delete(si_uuid=instance_uuid)
-    else:
+    except:
         raise Exception(f"Cancel operation disrupted; instance not deleted")
 
 def reprovision_link(old_instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, 

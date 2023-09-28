@@ -128,7 +128,10 @@ class DMM:
                 # Check if request has already been processed
                 request_id = Request.id(rule_id, src_rse_name, dst_rse_name)
                 if request_id in self.requests.keys():
-                    logging.error("request ID already processed--should never happen!")
+                    logging.error("request ID already processed, appending to the list of transfers")
+                    self.requests[request_id].n_transfers_total += request_attr["n_transfers_total"]
+                    self.requests[request_id].n_bytes_total += request_attr["n_bytes_total"]
+                    logging.info(f"request size is now {self.requests[request_id].n_transfers_total} transfers")
                     continue
                 # Retrieve or construct source Site object
                 src_site = self.sites.get(src_rse_name, Site(src_rse_name))
