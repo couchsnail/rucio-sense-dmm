@@ -30,7 +30,6 @@ def get_config():
         __CONFIG = Config()
     return __CONFIG.parser
 
-
 def config_get(section, option, default=None, extract_function=ConfigParser.ConfigParser.get):
     global __CONFIG
     try:

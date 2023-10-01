@@ -1,8 +1,12 @@
 from dmm.utils.config import config_get, config_get_bool, config_get_int
+from dmm.utils.helpers import *
 
 from dmm.core.site import Site
 from dmm.core.request import Request
 from dmm.core.orchestrator import Orchestrator
+
+from dmm.sql.models import Request, FTSTransfer
+from dmm.sql.session import databased
 
 import threading
 import logging
@@ -14,20 +18,10 @@ class DMM:
         # Config attrs
         self.host = config_get("dmm", "host", default='localhost')
         self.port = config_get_int("dmm", "port", default=5000)
-        self.monitoring = config_get_bool("dmm", "monitoring", default=False)
 
         self.orchestrator = Orchestrator(n_workers=n_workers)
         self.lock = threading.Lock()
         self.sites = {}
-        self.requests = {}
-
-    def __dump(self):
-        for request in self.requests.values():
-            logging.debug(
-                f"{request} | "
-                f"{request.src_site.rse_name} --> {request.dst_site.rse_name} "
-                f"{request.bandwidth} Mb/s"
-            )
 
     def stop(self):
         self.orchestrator.stop()
@@ -84,90 +78,54 @@ class DMM:
             logging.debug(f"{request} | {old_bandwidth} --> {request.bandwidth}; {msg}")
 
     @staticmethod
-    def link_closer(request, monitoring):
+    def link_closer(request):
         logging.debug(f"{request} | closing link")
         request.close_link()
 
     def update_requests(self, msg):
         """Update bandwidth provisions for all links"""
         logging.info("updating link bandwidth provisions and metadata")
-        for request_id, request in self.requests.items():
+        for request in :
             # Submit SENSE query
             link_updater_args = (
                 request,
-                msg if request.link_is_open else "opened link",
-                self.monitoring
-            )
+                msg if request.link_is_open else "opened link"
+                )
             self.orchestrator.put(request_id, DMM.link_updater, link_updater_args)
 
-    def preparer_handler(self, payload):
-        """
-        Organize data (the 'payload') from Rucio preparer daemon into Request objects,
-        where each Request == (Rucio Rule ID + RSE Pair), open new links, and 
-        reprovision existing links appropriately
-        
-        payload = {
-            rule_id_1: {
-                "SiteA&SiteB": {
-                    "transfer_ids": [str, str, ...],
-                    "priority": int,
-                    "n_bytes_total": int,
-                    "n_transfers_total": int
-                },
-                "SiteB&SiteC": { ... },
-                ...
-            },
-            rule_id_2: { ... },
-            ...
-        }
-        """
+    @databased
+    def get_request_from_id(request_id, session=None):
+        return session.query(Request).filter(Request.request_id == request_id).first()
+
+    @databased
+    def get_request_by_status(status, session=None):
+        return session.query(Request).filter(Request.transfer_status == status).all()
+
+    # TODO change this so it only adds request to the db, actual prep will be done by daemon
+    @databased
+    def preparer_handler(self, payload, session=None):
         logging.info("Starting Preparer Handler")
         for rule_id, prepared_rule in payload.items():
             for rse_pair_id, request_attr in prepared_rule.items():
                 src_rse_name, dst_rse_name = rse_pair_id.split("&")
                 # Check if request has already been processed
-                request_id = Request.id(rule_id, src_rse_name, dst_rse_name)
-                if request_id in self.requests.keys():
-                    logging.error("request ID already processed, appending to the list of transfers")
-                    self.requests[request_id].n_transfers_total += request_attr["n_transfers_total"]
-                    self.requests[request_id].n_bytes_total += request_attr["n_bytes_total"]
-                    logging.info(f"request size is now {self.requests[request_id].n_transfers_total} transfers")
-                    continue
-                # Retrieve or construct source Site object
-                src_site = self.sites.get(src_rse_name, Site(src_rse_name))
-                if src_rse_name not in self.sites.keys():
-                    self.sites[src_rse_name] = src_site
-                # Retrieve or construct destination Site object
-                dst_site = self.sites.get(dst_rse_name, Site(dst_rse_name))
-                if dst_rse_name not in self.sites.keys():
-                    self.sites[dst_rse_name] = dst_site
-                # Create new Request
-                request = Request(rule_id, src_site, dst_site, **request_attr)
-                request.register()
-                # Store new request and its corresponding link
-                self.requests[request_id] = request
-
-        self.update_requests("accommodating for new requests")
+                request_id = id(rule_id, src_rse_name, dst_rse_name)
+                existing_req = self.get_request_from_id(request_id)
+                if existing_req:
+                    existing_req.update(
+                        {
+                            "n_bytes_total": existing_req.n_bytes_total + request_attr.n_bytes_total,
+                            "n_transfers_total": existing_req.n_transfers_total + request_attr.n_transfers_total
+                        }
+                    )
+                else:
+                    new_request = Request(request_id, **request_attr)
+                    new_request.save(session)
         logging.info("Closing Preparer Handler")
 
+    # this will need to communicate with rucio immediately
+    # in rucio, check if transfer marked with sense activity, if yes, wait for dmm to return ips before submitting
     def submitter_handler(self, payload):
-        """
-        Return the IPv6 pair (source and dest) for a the request being submitted by the 
-        Rucio submitter daemon
-        
-        payload = {
-            rule_id_1: {
-                "SiteA&SiteB": {
-                    "priority": int,
-                    "n_transfers_submitted": int
-                },
-                "SiteB&SiteC": { ... },
-                ...
-            },
-            rule_id_2: { ... },
-            ...
-        }
-        """
         logging.info("Starting Submitter Handler")
         n_priority_changes = 0
         sense_map = {}
@@ -176,8 +134,8 @@ class DMM:
             for rse_pair_id, report in submitter_reports.items():
                 # Get request
                 src_rse_name, dst_rse_name = rse_pair_id.split("&")
-                request_id = Request.id(rule_id, src_rse_name, dst_rse_name)
-                req = self.requests[request_id]
+                request_id = id(rule_id, src_rse_name, dst_rse_name)
+                req = self.get_request_from_id(request_id)
                 # Update request
                 req.n_transfers_submitted += report["n_transfers_submitted"]
                 if report["priority"] != req.priority:
@@ -197,25 +155,8 @@ class DMM:
         logging.info("Closing Submitter Handler")
         return data
 
+    # updates request status in db, daemon just deregisters request 
     def finisher_handler(self, payload):
-        """
-        Parse data (the 'payload') from Rucio finisher daemon, update progress of 
-        every request, close the links for any that have finished, and reprovision 
-        existing links if possible
-        
-        payload = {
-            rule_id_1: {
-                "SiteA&SiteB": {
-                    "n_transfers_finished": int,
-                    "n_bytes_transferred": int
-                },
-                "SiteB&SiteC": { ... },
-                ...
-            },
-            rule_id_2: { ... },
-            ...
-        }
-        """
         logging.info("Starting Finisher Handler")
         n_link_closures = 0
         for rule_id, finisher_reports in payload.items():
@@ -224,15 +165,13 @@ class DMM:
                 src_rse_name, dst_rse_name = rse_pair_id.split("&")
                 request_id = Request.id(rule_id, src_rse_name, dst_rse_name)
                 request = self.requests[request_id]
-                # # Check performance and request logs
-                report["external_ids"]
                 # Update request
                 request.n_transfers_finished += report["n_transfers_finished"]
                 request.n_bytes_transferred += report["n_bytes_transferred"]
                 if request.n_transfers_finished == request.n_transfers_total:
                     request.deregister()
                     # Stage the link for closure
-                    closer_args = (request, self.monitoring)
+                    closer_args = (request)
                     self.orchestrator.clear(request_id)
                     self.orchestrator.put(request_id, DMM.link_closer, closer_args)
                     n_link_closures += 1

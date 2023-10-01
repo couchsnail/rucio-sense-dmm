@@ -35,12 +35,6 @@ def get_session():
     return session
 
 def databased(function):
-    '''
-    decorator that set the session variable to use inside a function.
-    With that decorator it's possible to use the session variable like if a global variable session is declared.
-
-    session is a sqlalchemy session, and you can get one calling get_session().
-    '''
     @wraps(function)
     def new_funct(*args, **kwargs):
         if not kwargs.get('session'):

@@ -19,7 +19,7 @@ if __name__ == "__main__":
         help="maximum number of worker processes"
     )
     cli.add_argument(
-        "--loglevel", type=str, default="WARNING", 
+        "--loglevel", type=str, default="INFO", 
         help="log level: DEBUG, INFO, WARNING (default), or ERROR"
     )
     cli.add_argument(
