@@ -4,10 +4,11 @@ RUN pip3 install sense-o-api==1.23 sqlalchemy psycopg2-binary
 EXPOSE 5000
 
 WORKDIR /opt/dmm
-COPY ./ /opt/dmm
+#COPY ./ /opt/dmm
 
 ENV PYTHONPATH=/opt/dmm/
 
 ENV DMM_CONFIG /opt/dmm/dmm.cfg
 
-ENTRYPOINT ["bin/dmm", "--loglevel", "debug"]
+#ENTRYPOINT ["bin/dmm", "--loglevel", "debug"]
+ENTRYPOINT ["/bin/bash"]

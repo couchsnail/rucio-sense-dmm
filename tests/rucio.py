@@ -4,12 +4,7 @@ SENSE Optimizer Prototype
 import json
 import socket
 
-from rucio.core.rse import get_rse_name
-from rucio.common.config import config_get
-
-DMM_HOST = config_get('conveyor', 'dmm_host', False, None)
-
-ADDRESS = (DMM_HOST, 5000)
+ADDRESS = ("localhost", 5000)
 
 def sense_preparer(requests_with_sources):
     """
@@ -24,18 +19,16 @@ def sense_preparer(requests_with_sources):
         if rws.rule_id not in prepared_rules.keys():
             prepared_rules[rws.rule_id] = {}
         # Check if RSE pair has been accounted for
-        src_name = rws.sources[0].rse.name # FIXME: can we always take the first one?
-        dst_name = get_rse_name(rws.dest_rse.id)
+        src_name = rws.sources[0] # FIXME: can we always take the first one?
+        dst_name = "T2_US_TEST2"
         rse_pair_id = __get_rse_pair_id(src_name, dst_name)
         if rse_pair_id not in prepared_rules[rws.rule_id].keys():
             prepared_rules[rws.rule_id][rse_pair_id] = {
-                "transfer_ids": [],
                 "priority": rws.attributes["priority"],
                 "n_transfers_total": 0,
                 "n_bytes_total": 0
             }
         # Update request attributes
-        prepared_rules[rws.rule_id][rse_pair_id]["transfer_ids"].append(rws.request_id)
         prepared_rules[rws.rule_id][rse_pair_id]["n_transfers_total"] += 1
         prepared_rules[rws.rule_id][rse_pair_id]["n_bytes_total"] += rws.byte_count
 
@@ -79,22 +72,22 @@ def sense_optimizer(t_files):
         sense_map = json.loads(sense_map)
 
     # Do SENSE link replacement
-    for file_data in t_files:
-        rule_id = file_data["rule_id"]
-        src_name = file_data["metadata"]["src_rse"]
-        dst_name = file_data["metadata"]["dst_rse"]
-        rse_pair_id = __get_rse_pair_id(src_name, dst_name)
-        ipv6_map = sense_map[rule_id][rse_pair_id]
-        # Update source
-        src_url = file_data["sources"][0]
-        src_hostname = __get_host_port(src_url)
-        src_sense_url = src_url.replace(src_hostname, ipv6_map[src_name], 1)
-        file_data["sources"][0] = src_sense_url
-        # Update destination
-        dst_url = file_data["destinations"][0]
-        dst_hostname = __get_host_port(dst_url)
-        dst_sense_url = dst_url.replace(dst_hostname, ipv6_map[dst_name], 1)
-        file_data["destinations"][0] = dst_sense_url
+    # for file_data in t_files:
+    #     rule_id = file_data["rule_id"]
+    #     src_name = file_data["metadata"]["src_rse"]
+    #     dst_name = file_data["metadata"]["dst_rse"]
+    #     rse_pair_id = __get_rse_pair_id(src_name, dst_name)
+    #     ipv6_map = sense_map[rule_id][rse_pair_id]
+    #     # Update source
+    #     src_url = file_data["sources"][0]
+    #     src_hostname = __get_host_port(src_url)
+    #     src_sense_url = src_url.replace(src_hostname, ipv6_map[src_name], 1)
+    #     file_data["sources"][0] = src_sense_url
+    #     # Update destination
+    #     dst_url = file_data["destinations"][0]
+    #     dst_hostname = __get_host_port(dst_url)
+    #     dst_sense_url = dst_url.replace(dst_hostname, ipv6_map[dst_name], 1)
+    #     file_data["destinations"][0] = dst_sense_url
 
 def sense_finisher(rule_id, replicas):
     """
@@ -106,8 +99,8 @@ def sense_finisher(rule_id, replicas):
     """
     finisher_reports = {}
     for replica in replicas:
-        src_name = get_rse_name(replica["source_rse_id"])
-        dst_name = get_rse_name(replica["dest_rse_id"])
+        src_name = replica.source
+        dst_name = "T2_US_TEST2"
         rse_pair_id = __get_rse_pair_id(src_name, dst_name) # FIXME: probably wrong
         if rse_pair_id not in finisher_reports.keys():
             finisher_reports[rse_pair_id] = {
@@ -131,3 +124,79 @@ def __get_host_port(url):
     # Assumes the url is something like "protocol://hostname//path"
     # TODO: Need to make more universal for other url formats.
     return url.split("/")[2]
+
+
+class RequestWithSources:
+    def __init__(self, rule_id, sources, attributes, byte_count):
+        self.rule_id = rule_id
+        self.sources = sources
+        self.attributes = attributes
+        self.byte_count = byte_count
+
+class TestSensePreparer:
+    def test_sense_preparer(self):
+        requests_with_sources = {
+            1: RequestWithSources("rule1", ["source1"], {"priority": 3}, 500),
+            2: RequestWithSources("rule1", ["source1"], {"priority": 3}, 1000),
+            3: RequestWithSources("rule1", ["source1"], {"priority": 3}, 700),
+            4: RequestWithSources("rule1", ["source1"], {"priority": 3}, 800),
+        }
+
+        # Call the sense_preparer function with the test data
+        sense_preparer(requests_with_sources)
+
+class TFile:
+    def __init__(self, rule_id, metadata, priority, sources, destinations, data):
+        self.rule_id = rule_id
+        self.metadata = metadata
+        self.priority = priority
+        self.sources = sources
+        self.destinations = destinations
+        self.data = data
+    
+    def __getitem__(self, key):
+        return getattr(self, key, None)
+
+class TestSenseOptimizer:
+    def test_sense_optimizer(self):
+        t_files = [
+            TFile("rule1", {"src_rse": "source1", "dst_rse": "T2_US_TEST2"}, 3, ["source_url1"], ["destination_url1"],'a'),
+            TFile("rule1", {"src_rse": "source1", "dst_rse": "T2_US_TEST2"}, 3, ["source_url1"], ["destination_url1"],'b'),
+            TFile("rule1", {"src_rse": "source1", "dst_rse": "T2_US_TEST2"}, 3, ["source_url1"], ["destination_url1"],'c'),
+            TFile("rule1", {"src_rse": "source1", "dst_rse": "T2_US_TEST2"}, 3, ["source_url1"], ["destination_url1"],'d')
+        ]
+
+        # Call the sense_optimizer function with the test data
+        sense_optimizer(t_files)
+
+class Replica:
+    def __init__(self, bytes, source, external_id):
+        self.bytes = bytes
+        self.source = source
+        self.external_id = external_id
+
+    def __getitem__(self, key):
+        return getattr(self, key, None)
+
+class TestSenseFinisher:
+    def test_sense_finisher(self):
+        rule_id = "rule1"
+        replicas = [
+            Replica(500, "source1", "external_id1"),
+            Replica(1000, "source1", "external_id2"),
+            Replica(700, "source1", "external_id3"),
+            Replica(800, "source1", "external_id4")
+        ]
+
+        # Call the sense_finisher function with the test data
+        sense_finisher(rule_id, replicas)
+
+if __name__ == "__main__":
+    test_instance = TestSensePreparer()
+    test_instance.test_sense_preparer()
+
+    test_instance = TestSenseOptimizer()
+    test_instance.test_sense_optimizer()
+
+    test_instance = TestSenseFinisher()
+    test_instance.test_sense_finisher()

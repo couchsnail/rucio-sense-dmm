@@ -1,10 +1,10 @@
 import sys
-sys.path.append('..')
+sys.path.append("..")
 
 import unittest
 import random
-from dmm.sql.session import get_engine, get_maker, get_session, databased
-from dmm.sql.models import Request, FTSTransfer
+from dmm.db.session import get_engine, get_maker, get_session, databased
+from dmm.db.models import Request, FTSTransfer
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.engine import Engine as engine
 
@@ -16,7 +16,7 @@ class TestSession(unittest.TestCase):
         @databased
         def sample_function(session):
             # Your logic using the session goes here
-            req = Request(request_id=f'Test_{random.random()}')
+            req = Request(request_id=f"Test_{random.random()}")
             
             transfer1 = FTSTransfer()
             transfer1.value = "testid_1"
@@ -28,16 +28,15 @@ class TestSession(unittest.TestCase):
             req.save(session)
 
             new_attrs = {
-                'src_site': 'A',
-                'dst_site': 'B'
+                "src_site": "A",
+                "dst_site": "B"
             }
 
             req.update(new_attrs)
-
             print(session.query(Request).first().__dict__)
         # Call the sample function with the decorator
         sample_function()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
