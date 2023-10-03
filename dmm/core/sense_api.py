@@ -20,17 +20,6 @@ def get_profile_uuid():
 def good_response(response):
     return len(response) > 0 and "ERROR" not in response and "error" not in response
 
-def get_ipv6_pool(uri):
-    """Return a list of IPv6 subnets at given site"""
-    discover_api = DiscoverApi()
-    response = discover_api.discover_domain_id_ipv6pool_get(uri)
-    logging.debug(response)
-    if len(response) == 0 or "ERROR" in response:
-        raise ValueError(f"Discover query failed for {uri}")
-    else:
-        response = json.loads(response)
-        return response["routing"][0]["ipv6_subnet_pool"].split(",")
-
 def get_uplink_capacity(uri):
     """Return the maximum uplink capacity in Mb/s for a given site"""
     discover_api = DiscoverApi()
@@ -40,8 +29,7 @@ def get_uplink_capacity(uri):
         raise ValueError(f"Discover query failed for {uri}")
     else:
         response = json.loads(response)
-        #return float(response["peer_points"][0]["port_capacity"])
-        return 10000
+        return float(response["peer_points"][0]["port_capacity"])
 
 def good_response(response):
     return bool(response and not any("ERROR" in r for r in response))
@@ -74,9 +62,12 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
             {
                 "ask": "edit",
                 "options": [
-                    {"data.connections[0].terminals[0].uri": src_uri}, {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
-                    {"data.connections[0].terminals[1].uri": dst_uri}, {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[0].vlan_tag": "3895-3899"}, {"data.connections[0].terminals[1].vlan_tag": "3895-3899"}
+                    {"data.connections[0].terminals[0].uri": src_uri}, 
+                    {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
+                    {"data.connections[0].terminals[1].uri": dst_uri}, 
+                    {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                    {"data.connections[0].terminals[0].vlan_tag": "3895-3899"}, 
+                    {"data.connections[0].terminals[1].vlan_tag": "3895-3899"}
                 ]
             },
             {"ask": "maximum-bandwidth", "options": [{"name": "Connection 1"}]}
@@ -105,10 +96,12 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
                 "ask": "edit",
                 "options": [
                     {"data.connections[0].bandwidth.capacity": str(bandwidth)},
-                    {"data.connections[0].terminals[0].uri": src_uri}, {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
-                    {"data.connections[0].terminals[1].uri": dst_uri}, {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[1].uri": dst_uri}, {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[0].vlan_tag": "3895-3899"}, {"data.connections[0].terminals[1].vlan_tag": "3895-3899"}
+                    {"data.connections[0].terminals[0].uri": src_uri}, 
+                    {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
+                    {"data.connections[0].terminals[1].uri": dst_uri}, 
+                    {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                    {"data.connections[0].terminals[0].vlan_tag": "3895-3899"}, 
+                    {"data.connections[0].terminals[1].vlan_tag": "3895-3899"}
                 ]
             }
         ]
@@ -133,6 +126,7 @@ def delete_link(instance_uuid):
     total_time = 0
     while "CANCEL - READY" not in status and total_time < 30:
         sleep(5)
+        status = workflow_api.instance_get_status(si_uuid=instance_uuid)
         total_time += 5
     try:
         workflow_api.instance_delete(si_uuid=instance_uuid)

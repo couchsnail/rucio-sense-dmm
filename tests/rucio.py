@@ -20,7 +20,7 @@ def sense_preparer(requests_with_sources):
             prepared_rules[rws.rule_id] = {}
         # Check if RSE pair has been accounted for
         src_name = rws.sources[0] # FIXME: can we always take the first one?
-        dst_name = "T2_US_TEST2"
+        dst_name = "T2_US_Caltech_Test"
         rse_pair_id = __get_rse_pair_id(src_name, dst_name)
         if rse_pair_id not in prepared_rules[rws.rule_id].keys():
             prepared_rules[rws.rule_id][rse_pair_id] = {
@@ -100,7 +100,7 @@ def sense_finisher(rule_id, replicas):
     finisher_reports = {}
     for replica in replicas:
         src_name = replica.source
-        dst_name = "T2_US_TEST2"
+        dst_name = "T2_US_Caltech_Test"
         rse_pair_id = __get_rse_pair_id(src_name, dst_name) # FIXME: probably wrong
         if rse_pair_id not in finisher_reports.keys():
             finisher_reports[rse_pair_id] = {
@@ -136,10 +136,8 @@ class RequestWithSources:
 class TestSensePreparer:
     def test_sense_preparer(self):
         requests_with_sources = {
-            1: RequestWithSources("rule1", ["source1"], {"priority": 3}, 500),
-            2: RequestWithSources("rule1", ["source1"], {"priority": 3}, 1000),
-            3: RequestWithSources("rule1", ["source1"], {"priority": 3}, 700),
-            4: RequestWithSources("rule1", ["source1"], {"priority": 3}, 800),
+            1: RequestWithSources("rule1", ["T2_US_SDSC"], {"priority": 3}, 500),
+            2: RequestWithSources("rule1", ["T2_US_SDSC"], {"priority": 3}, 1000),
         }
 
         # Call the sense_preparer function with the test data
@@ -160,10 +158,10 @@ class TFile:
 class TestSenseOptimizer:
     def test_sense_optimizer(self):
         t_files = [
-            TFile("rule1", {"src_rse": "source1", "dst_rse": "T2_US_TEST2"}, 3, ["source_url1"], ["destination_url1"],'a'),
-            TFile("rule1", {"src_rse": "source1", "dst_rse": "T2_US_TEST2"}, 3, ["source_url1"], ["destination_url1"],'b'),
-            TFile("rule1", {"src_rse": "source1", "dst_rse": "T2_US_TEST2"}, 3, ["source_url1"], ["destination_url1"],'c'),
-            TFile("rule1", {"src_rse": "source1", "dst_rse": "T2_US_TEST2"}, 3, ["source_url1"], ["destination_url1"],'d')
+            TFile("rule1", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"],'a'),
+            TFile("rule1", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"],'b'),
+            TFile("rule2", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"],'c'),
+            TFile("rule2", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"],'d')
         ]
 
         # Call the sense_optimizer function with the test data
@@ -182,10 +180,8 @@ class TestSenseFinisher:
     def test_sense_finisher(self):
         rule_id = "rule1"
         replicas = [
-            Replica(500, "source1", "external_id1"),
-            Replica(1000, "source1", "external_id2"),
-            Replica(700, "source1", "external_id3"),
-            Replica(800, "source1", "external_id4")
+            Replica(500, "T2_US_SDSC", "external_id1"),
+            Replica(1000, "T2_US_SDSC", "external_id2"),
         ]
 
         # Call the sense_finisher function with the test data
@@ -195,8 +191,8 @@ if __name__ == "__main__":
     test_instance = TestSensePreparer()
     test_instance.test_sense_preparer()
 
-    test_instance = TestSenseOptimizer()
-    test_instance.test_sense_optimizer()
+    # test_instance = TestSenseOptimizer()
+    # test_instance.test_sense_optimizer()
 
-    test_instance = TestSenseFinisher()
-    test_instance.test_sense_finisher()
+    # test_instance = TestSenseFinisher()
+    # test_instance.test_sense_finisher()

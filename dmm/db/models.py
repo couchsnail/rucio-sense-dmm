@@ -3,9 +3,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from datetime import datetime
 
-from dmm.utils.helpers import *
+from dmm.utils.helpers import get_request_id
 
 from dmm.db.session import get_engine
+from dmm.core.sense_api import get_uri
 
 BASE = declarative_base()
 
@@ -50,8 +51,12 @@ class Request(BASE, ModelBase):
     n_transfers_total = Column(Integer())
     n_transfers_submitted = Column(Integer())
     n_transfers_finished = Column(Integer())
-    src_ipv6 = Column(String(255))
-    dst_ipv6 = Column(String(255))
+    src_ipv6_block = Column(String(255))
+    dst_ipv6_block = Column(String(255))
+    src_url = Column(String(255))
+    dst_url = Column(String(255))
+    src_sense_uri = Column(String(255))
+    dst_sense_uri = Column(String(255))
     bandwidth = Column(Float())
     sense_link_id = Column(String(255))
     external_ids = relationship("FTSTransfer", back_populates="request")  
@@ -59,10 +64,12 @@ class Request(BASE, ModelBase):
 
     def __init__(self, **kwargs):
         super(Request, self).__init__(**kwargs)
-        self.request_id = id(self.rule_id, self.src_site, self.dst_site)
+        self.request_id = get_request_id(self.rule_id, self.src_site, self.dst_site)
         self.n_transfers_submitted = 0
         self.n_bytes_transferred = 0
         self.n_transfers_finished = 0
+        self.src_sense_uri = get_uri(self.src_site)
+        self.dst_sense_uri = get_uri(self.dst_site)
 
 class FTSTransfer(BASE, ModelBase):
     __tablename__ = "ftstransfers"
