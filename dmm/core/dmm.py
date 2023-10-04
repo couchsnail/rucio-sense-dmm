@@ -20,6 +20,7 @@ class DMM:
 
         logging.info("Starting Handler")
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             listener.bind((self.host, self.port))
             listener.listen(1)
             logging.info(f"Listening on {self.host}:{self.port}")

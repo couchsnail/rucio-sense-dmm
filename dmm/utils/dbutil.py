@@ -40,12 +40,14 @@ def subnet_allocation(req, session=None):
         "dst_url": dst_site.get(dst_ip_block, "")
     })
 
-
 def get_request_from_id(request_id, session=None):
     return session.query(Request).filter(Request.request_id == request_id).first()
 
 def get_request_by_status(status, session=None):
-    return session.query(Request).filter(Request.transfer_status == status).all()
+    return session.query(Request).filter(Request.transfer_status.in_(status)).all()
+
+def get_active_sites(session=None):
+    return session.query(Request.src_site.distinct(), Request.dst_site.distinct()).all()
 
 def mark_requests(reqs, status, session=None):
     for req in reqs:

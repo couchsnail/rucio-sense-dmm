@@ -20,7 +20,7 @@ def sense_preparer(requests_with_sources):
             prepared_rules[rws.rule_id] = {}
         # Check if RSE pair has been accounted for
         src_name = rws.sources[0] # FIXME: can we always take the first one?
-        dst_name = "T2_US_Caltech_Test"
+        dst_name = rws.dest
         rse_pair_id = __get_rse_pair_id(src_name, dst_name)
         if rse_pair_id not in prepared_rules[rws.rule_id].keys():
             prepared_rules[rws.rule_id][rse_pair_id] = {
@@ -127,8 +127,9 @@ def __get_host_port(url):
 
 
 class RequestWithSources:
-    def __init__(self, rule_id, sources, attributes, byte_count):
+    def __init__(self, rule_id, sources, dest, attributes, byte_count):
         self.rule_id = rule_id
+        self.dest = dest
         self.sources = sources
         self.attributes = attributes
         self.byte_count = byte_count
@@ -136,8 +137,9 @@ class RequestWithSources:
 class TestSensePreparer:
     def test_sense_preparer(self):
         requests_with_sources = {
-            1: RequestWithSources("rule1", ["T2_US_SDSC"], {"priority": 3}, 500),
-            2: RequestWithSources("rule1", ["T2_US_SDSC"], {"priority": 3}, 1000),
+            1: RequestWithSources("rule1", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 0}, 500),
+            2: RequestWithSources("rule2", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 2}, 1000),
+            3: RequestWithSources("rule3", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 4}, 1000),
         }
 
         # Call the sense_preparer function with the test data
