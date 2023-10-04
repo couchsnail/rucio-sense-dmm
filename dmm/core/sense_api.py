@@ -67,6 +67,8 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
                     {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri},
                     {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                    {"data.connections[0].terminals[0].vlan_tag": "3985-3989"}, 
+                    {"data.connections[0].terminals[1].vlan_tag": "3985-3989"}
                 ]
             },
             {"ask": "maximum-bandwidth", "options": [{"name": "Connection 1"}]}
@@ -101,6 +103,8 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
                     {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri},
                     {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                    {"data.connections[0].terminals[0].vlan_tag": "3985-3989"}, 
+                    {"data.connections[0].terminals[1].vlan_tag": "3985-3989"}
                 ]
             }
         ]

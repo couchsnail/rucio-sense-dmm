@@ -1,5 +1,4 @@
 import networkx as nx
-import matplotlib.pyplot as plt
 
 from dmm.db.session import databased
 from dmm.utils.dbutil import get_request_by_status

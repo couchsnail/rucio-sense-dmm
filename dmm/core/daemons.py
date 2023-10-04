@@ -37,7 +37,7 @@ def stager_daemon(session=None):
         print(allocated_bandwidth)
         req.update(
             {
-                "bandwidth": allocated_bandwidth
+                "bandwidth": int(allocated_bandwidth)
             }
         )
     # mark req as PREPARED
@@ -54,7 +54,7 @@ def provision_daemon(session=None):
                         req.dst_sense_uri,
                         req.src_ipv6_block,
                         req.dst_ipv6_block,
-                        req.bandwidth,
+                        int(req.bandwidth),
                         alias=req.request_id
                     )
     mark_requests(reqs_staged, "PROVISIONED", session)

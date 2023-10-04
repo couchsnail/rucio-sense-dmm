@@ -49,43 +49,6 @@ class NetworkGraph:
                 for _, _, data in self.graph.edges(node, data=True):
                     data["bandwidth"] *= scaling_factor
 
-    def draw(self, filename="graph.png", font_size=8, figure_size=(10, 10), dpi=100):
-        # Create a layout for the graph using the spring layout algorithm
-        pos = nx.spring_layout(self.graph, seed=42)
-
-        # Draw the nodes and labels with smaller font size
-        nx.draw(self.graph, pos, with_labels=True, node_size=300, node_color='lightblue', font_size=font_size)
-        node_labels = {node: f"{node}\nCapacity: {data['uplink_capacity']}" for node, data in self.graph.nodes(data=True)}
-        nx.draw_networkx_labels(self.graph, pos, labels=node_labels, font_size=font_size)
-
-        # Customize edge labels for MultiGraph
-        edge_positions = {}
-        edge_count = count()  # Create a counter for multiple edges between the same nodes
-
-        for edge in self.graph.edges(keys=True):
-            source, target, key = edge
-            edge_positions[(source, target, key)] = (
-                pos[source][0] + next(edge_count) * 0.05,
-                pos[source][1] + next(edge_count) * 0.05
-            )
-
-        # # Manually position and draw edge labels for MultiGraph
-        # for edge in self.graph.edges(keys=True, data=True):
-        #     source, target, key = edge[:3]
-        #     data = edge[3]
-
-        #     x, y = edge_positions[(source, target, key)]
-        #     edge_label = f"Request ID: {data['request_id']}\nPriority: {data['priority']}\nBandwidth: {data['bandwidth']}"
-
-        #     plt.text(x, y, edge_label, fontsize=font_size, ha='center', va='center', bbox=dict(facecolor='white', alpha=0.7))
-
-        # Save the graph as an image file with adjusted size and dpi
-        plt.figure(figsize=figure_size)
-        plt.axis('off')
-        plt.savefig(filename, bbox_inches='tight', dpi=dpi)
-        plt.close()  # Close the figure to release resources
-
-
     def get_bandwidth_for_request_id(self, request_id):
         for source, target, key, data in self.graph.edges(keys=True, data=True):
             if "request_id" in data and data["request_id"] == request_id:

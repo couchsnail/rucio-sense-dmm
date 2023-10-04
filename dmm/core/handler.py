@@ -40,13 +40,14 @@ def submitter_handler(payload, session=None):
     logging.info("Starting Submitter Handler")
     sense_map = {}
     for rule_id, submitter_reports in payload.items():
+        sense_map[rule_id] = {}
         for rse_pair_id, report in submitter_reports.items():
             # maybe get ips and return them and update database
             src_rse_name, dst_rse_name = rse_pair_id.split("&")
             request_id = get_request_id(rule_id, src_rse_name, dst_rse_name)
             req = get_request_from_id(request_id, session)
             time = 0
-            while req.status not in ["STAGED", "PROVISIONED"] and time < 30:
+            while req.transfer_status not in ["STAGED", "PROVISIONED"] and time < 30:
                 sleep(10)
                 time += 10
             req.update(

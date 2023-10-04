@@ -14,14 +14,8 @@ def subnet_allocation(req, session=None):
     dst_ip_block = "best_effort"
 
     if req.priority != 0:
-        src_allocated = {
-            str(req.src_ipv6_block) for req in session.query(Request.src_ipv6_block)
-            .filter(Request.src_site == req.src_site, Request.transfer_status != 'FINISHED')
-            .all()
-        }
-        dst_allocated = {
-            str(req.dst_ipv6_block) for req in session.query(Request.dst_ipv6_block)
-            .filter(Request.dst_site == req.dst_site, Request.transfer_status != 'FINISHED').all()}
+        src_allocated = {str(req.src_ipv6_block) for req in session.query(Request.src_ipv6_block).filter(Request.src_site == req.src_site).all()}
+        dst_allocated = {str(req.dst_ipv6_block) for req in session.query(Request.dst_ipv6_block).filter(Request.dst_site == req.dst_site).all()}
 
         for ip_block, url in src_site.get("ipv6_pool", {}).items():
             if ip_block not in src_allocated:
@@ -36,8 +30,8 @@ def subnet_allocation(req, session=None):
     req.update({
         "src_ipv6_block": src_ip_block,
         "dst_ipv6_block": dst_ip_block,
-        "src_url": src_site.get(src_ip_block, ""),
-        "dst_url": dst_site.get(dst_ip_block, "")
+        "src_url": src_site.get("ipv6_pool", {}).get(src_ip_block, ""),
+        "dst_url": dst_site.get("ipv6_pool", {}).get(dst_ip_block, "")
     })
 
 def get_request_from_id(request_id, session=None):
