@@ -2,7 +2,7 @@ import json
 import re
 
 import logging
-from time import time, sleep
+from time import sleep
 
 from dmm.utils.config import config_get
 
@@ -41,17 +41,6 @@ def get_uri(rse_name, regex=".*?", full=False):
         raise ValueError(f"Discover query failed for {full_uri}")
     logging.info(f"Got URI: {root_uri} for {rse_name}")
     return root_uri
-
-def get_uplink_capacity(uri):
-    """Return the maximum uplink capacity in Mb/s for a given site"""
-    discover_api = DiscoverApi()
-    response = discover_api.discover_domain_id_peers_get(uri)
-    logging.debug(response)
-    if not good_response(response):
-        raise ValueError(f"Discover query failed for {uri}")
-    else:
-        response = json.loads(response)
-        return float(response["peer_points"][0]["port_capacity"])
 
 def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias=""):
     logging.info("Staging new SENSE link")

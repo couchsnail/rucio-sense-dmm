@@ -71,24 +71,6 @@ def sense_optimizer(t_files):
         sense_map = client.recv(4096).decode()
         sense_map = json.loads(sense_map)
 
-    # Do SENSE link replacement
-    # for file_data in t_files:
-    #     rule_id = file_data["rule_id"]
-    #     src_name = file_data["metadata"]["src_rse"]
-    #     dst_name = file_data["metadata"]["dst_rse"]
-    #     rse_pair_id = __get_rse_pair_id(src_name, dst_name)
-    #     ipv6_map = sense_map[rule_id][rse_pair_id]
-    #     # Update source
-    #     src_url = file_data["sources"][0]
-    #     src_hostname = __get_host_port(src_url)
-    #     src_sense_url = src_url.replace(src_hostname, ipv6_map[src_name], 1)
-    #     file_data["sources"][0] = src_sense_url
-    #     # Update destination
-    #     dst_url = file_data["destinations"][0]
-    #     dst_hostname = __get_host_port(dst_url)
-    #     dst_sense_url = dst_url.replace(dst_hostname, ipv6_map[dst_name], 1)
-    #     file_data["destinations"][0] = dst_sense_url
-
 def sense_finisher(rule_id, replicas):
     """
     Parse replicas and update SENSE on how many jobs (per source+dest RSE pair) have 
@@ -137,9 +119,9 @@ class RequestWithSources:
 class TestSensePreparer:
     def test_sense_preparer(self):
         requests_with_sources = {
-            1: RequestWithSources("rule1", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 0}, 500),
-            2: RequestWithSources("rule2", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 2}, 1000),
-            3: RequestWithSources("rule3", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 4}, 1000),
+            1: RequestWithSources("RULEID1", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 0}, 500),
+            2: RequestWithSources("RULEID2", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 2}, 500),
+            3: RequestWithSources("RULEID3", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 4}, 1000),
         }
 
         # Call the sense_preparer function with the test data

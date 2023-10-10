@@ -5,19 +5,20 @@ from dmm.utils.dbutil import get_request_by_status
 from dmm.core.sense_api import get_uplink_capacity
 
 class NetworkGraph:
-    @databased
-    def __init__(self, session=None):
+    def __init__(self):
         self.graph = nx.MultiGraph()
-
-        reqs =  get_request_by_status(status=["INIT", "STAGED", "FINISHED"], session=session)
-
+    
+    @databased
+    def update(self, session=None):
+        reqs =  get_request_by_status(status=["STAGED", "DECIDED", "PROVISIONED", "FINISHED"], session=session)
         for req in reqs:
             if req.priority != 0:    
                 if not self.graph.has_node(req.src_site):
-                    self.graph.add_node(req.src_site, uplink_capacity=get_uplink_capacity(req.src_sense_uri))
+                    self.graph.add_node(req.src_site, uplink_capacity=req.uplink_capacity)
                 if not self.graph.has_node(req.dst_site):
-                    self.graph.add_node(req.dst_site, uplink_capacity=get_uplink_capacity(req.dst_sense_uri))
-                self.graph.add_edge(req.src_site, req.dst_site, request_id = req.request_id, priority = req.priority, bandwidth = req.bandwidth)
+                    self.graph.add_node(req.dst_site, uplink_capacity=req.uplink_capacity)
+                if not any(attr['request_id'] == req.request_id for u, v, attr in self.graph.edges(data=True)):
+                    self.graph.add_edge(req.src_site, req.dst_site, request_id = req.request_id, priority = req.priority, bandwidth = req.bandwidth)
         
         for src, dst, key, data in self.graph.edges(data=True, keys=True):
             src_capacity = self.graph.nodes[src]["uplink_capacity"]
@@ -46,4 +47,4 @@ class NetworkGraph:
     def get_bandwidth_for_request_id(self, request_id):
         for source, target, key, data in self.graph.edges(keys=True, data=True):
             if "request_id" in data and data["request_id"] == request_id:
-                return data["bandwidth"]
+                return int(data["bandwidth"])
