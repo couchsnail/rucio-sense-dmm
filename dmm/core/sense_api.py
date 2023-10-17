@@ -42,10 +42,18 @@ def get_uri(rse_name, regex=".*?", full=False):
     logging.info(f"Got URI: {root_uri} for {rse_name}")
     return root_uri
 
+def get_site_info(rse_name):
+    discover_api = DiscoverApi()
+    response = discover_api.discover_domain_id_get(get_uri(rse_name))
+    if not good_response(response):
+        raise ValueError(f"Site Info Query Failed")
+    return response
+
 def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias=""):
     logging.info("Staging new SENSE link")
     workflow_api = WorkflowCombinedApi()
     workflow_api.instance_new() if instance_uuid == "" else setattr(workflow_api, "si_uuid", instance_uuid)
+    vlan_tag = config_get("sense", "vlan_tag", default="Any")
     intent = {
         "service_profile_uuid": get_profile_uuid(),
         "queries": [
@@ -56,8 +64,8 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
                     {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri},
                     {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[0].vlan_tag": "3985-3989"}, 
-                    {"data.connections[0].terminals[1].vlan_tag": "3985-3989"}
+                    {"data.connections[0].terminals[0].vlan_tag": vlan_tag}, 
+                    {"data.connections[0].terminals[1].vlan_tag": vlan_tag}
                 ]
             },
             {"ask": "maximum-bandwidth", "options": [{"name": "Connection 1"}]}
@@ -81,6 +89,7 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
     logging.info(f"Provisioning staged {int(bandwidth) / 1000}G link with instance uuid {instance_uuid}")
     workflow_api = WorkflowCombinedApi()
     workflow_api.si_uuid = instance_uuid
+    vlan_tag = config_get("sense", "vlan_tag", default="Any")
     intent = {
         "service_profile_uuid": get_profile_uuid(),
         "queries": [
@@ -92,8 +101,8 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
                     {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri},
                     {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[0].vlan_tag": "3985-3989"}, 
-                    {"data.connections[0].terminals[1].vlan_tag": "3985-3989"}
+                    {"data.connections[0].terminals[0].vlan_tag": vlan_tag}, 
+                    {"data.connections[0].terminals[1].vlan_tag": vlan_tag}
                 ]
             }
         ]

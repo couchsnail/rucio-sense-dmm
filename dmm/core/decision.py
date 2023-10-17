@@ -1,8 +1,7 @@
 import networkx as nx
 
 from dmm.db.session import databased
-from dmm.utils.dbutil import get_request_by_status
-from dmm.core.sense_api import get_uplink_capacity
+from dmm.utils.dbutil import get_request_by_status, get_site
 
 class NetworkGraph:
     def __init__(self):
@@ -14,11 +13,11 @@ class NetworkGraph:
         for req in reqs:
             if req.priority != 0:    
                 if not self.graph.has_node(req.src_site):
-                    self.graph.add_node(req.src_site, uplink_capacity=req.uplink_capacity)
+                    self.graph.add_node(req.src_site, uplink_capacity=get_site(req.src_site, session=session).port_capacity)
                 if not self.graph.has_node(req.dst_site):
-                    self.graph.add_node(req.dst_site, uplink_capacity=req.uplink_capacity)
+                    self.graph.add_node(req.dst_site, uplink_capacity=get_site(req.dst_site, session=session).port_capacity)
                 if not any(attr['request_id'] == req.request_id for u, v, attr in self.graph.edges(data=True)):
-                    self.graph.add_edge(req.src_site, req.dst_site, request_id = req.request_id, priority = req.priority, bandwidth = req.bandwidth)
+                    self.graph.add_edge(req.src_site, req.dst_site, request_id=req.request_id, priority=req.priority, bandwidth=req.bandwidth)
         
         for src, dst, key, data in self.graph.edges(data=True, keys=True):
             src_capacity = self.graph.nodes[src]["uplink_capacity"]

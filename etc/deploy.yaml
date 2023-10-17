@@ -1,27 +1,36 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: dmm
 spec:
-  hostNetwork: true
-  containers:
-  - name: dmm
-    image: aaarora/dmm:latest
-    ports:
-      - containerPort: 5000
-    volumeMounts: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dmm
+  template:
+    metadata:
+      labels:
+        app: dmm
+    spec:
+      hostNetwork: true
+      containers:
+      - name: dmm
+        image: aaarora/dmm:latest
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: dmm-config
+          mountPath: /opt/dmm/dmm.cfg
+          subPath: dmm.cfg
+        - name: sense-config
+          mountPath: /root/.sense-o-auth.yaml
+          subPath: .sense-o-auth.yaml
+      nodeSelector:
+        kubernetes.io/hostname: nrp-01.nrp-nautilus.io
+      volumes:
       - name: dmm-config
-        mountPath: /opt/dmm/dmm.cfg
-        subPath: dmm.cfg
+        secret:
+          secretName: dmm-config
       - name: sense-config
-        mountPath: /root/.sense-o-auth.yaml
-        subPath: .sense-o-auth.yaml
-  nodeSelector:
-    kubernetes.io/hostname: nrp-01.nrp-nautilus.io
-  volumes:
-    - name: dmm-config
-      secret:
-        secretName: dmm-config
-    - name: sense-config
-      secret:
-        secretName: sense-config
+        secret:
+          secretName: sense-config

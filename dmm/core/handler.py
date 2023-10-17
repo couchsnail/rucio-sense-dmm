@@ -2,10 +2,10 @@ import logging
 import json
 from time import sleep
 
-from dmm.utils.helpers import get_request_id
-
-from dmm.utils.dbutil import get_request_from_id, mark_requests
-from dmm.db.models import Request, FTSTransfer
+from dmm.utils.misc import get_request_id, wait
+from dmm.utils.common import subnet_allocation
+from dmm.utils.dbutil import get_request_from_id, mark_requests, get_site
+from dmm.db.models import Request, Site, FTSTransfer
 from dmm.db.session import databased
 
 @databased
@@ -30,11 +30,17 @@ def preparer_handler(payload, session=None):
                                         dst_site=dst_rse_name,
                                         transfer_status="INIT", 
                                         **request_attr)
+                if get_site(src_rse_name, session=session) is None:
+                    src_site = Site(name=src_rse_name)
+                    src_site.save(session)
+                if get_site(dst_rse_name, session=session) is None:
+                    dst_site = Site(name=dst_rse_name)
+                    dst_site.save(session)
+                subnet_allocation(new_request, session=session)
+                # Commit to session
                 new_request.save(session)
     logging.info("Closing Preparer Handler")
 
-# this will need to communicate with rucio immediately
-# in rucio, check if transfer marked with sense activity, if yes, wait for dmm to return ips before submitting
 @databased
 def submitter_handler(payload, session=None):
     logging.info("Starting Submitter Handler")
@@ -42,24 +48,19 @@ def submitter_handler(payload, session=None):
     for rule_id, submitter_reports in payload.items():
         sense_map[rule_id] = {}
         for rse_pair_id, report in submitter_reports.items():
-            # maybe get ips and return them and update database
             src_rse_name, dst_rse_name = rse_pair_id.split("&")
             request_id = get_request_id(rule_id, src_rse_name, dst_rse_name)
             req = get_request_from_id(request_id, session)
-            time = 0
-            while req.transfer_status not in ["STAGED", "PROVISIONED"] and time < 30:
-                sleep(10)
-                time += 10
             req.update(
                 {
                     "n_transfers_submitted": req.n_transfers_submitted + report["n_transfers_submitted"]
                 }
             )
+            wait(req.transfer_status not in ["INIT"], timeout=30)
             sense_map[rule_id][rse_pair_id] = {
                 req.src_site: req.src_url,
                 req.dst_site: req.dst_url
             }
-            mark_requests([req], "SUBMITTED", session)
     data = json.dumps(sense_map)
     logging.info("Closing Submitter Handler")
     return data

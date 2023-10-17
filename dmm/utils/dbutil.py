@@ -1,6 +1,9 @@
 import logging
 
-from dmm.db.models import Request
+from dmm.db.models import Request, Site
+
+def get_site(site_name, session=None):
+    return session.query(Site).filter(Site.name == site_name).first()
 
 def get_request_from_id(request_id, session=None):
     return session.query(Request).filter(Request.request_id == request_id).first()

@@ -4,6 +4,8 @@ SENSE Optimizer Prototype
 import json
 import socket
 
+from time import sleep
+
 ADDRESS = ("localhost", 5000)
 
 def sense_preparer(requests_with_sources):
@@ -69,6 +71,7 @@ def sense_optimizer(t_files):
         data = json.dumps({"daemon": "SUBMITTER", "data": submitter_reports})
         client.send(data.encode())
         sense_map = client.recv(4096).decode()
+        print(sense_map)
         sense_map = json.loads(sense_map)
 
 def sense_finisher(rule_id, replicas):
@@ -142,12 +145,9 @@ class TFile:
 class TestSenseOptimizer:
     def test_sense_optimizer(self):
         t_files = [
-            TFile("rule1", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"],'a'),
-            TFile("rule1", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"],'b'),
-            TFile("rule2", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"],'c'),
-            TFile("rule2", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"],'d')
+            TFile("RULEID2", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"], 'a'),
+            TFile("RULEID3", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"], 'b'),
         ]
-
         # Call the sense_optimizer function with the test data
         sense_optimizer(t_files)
 
@@ -175,8 +175,10 @@ if __name__ == "__main__":
     test_instance = TestSensePreparer()
     test_instance.test_sense_preparer()
 
-    # test_instance = TestSenseOptimizer()
-    # test_instance.test_sense_optimizer()
+    sleep(10)
+
+    test_instance = TestSenseOptimizer()
+    test_instance.test_sense_optimizer()
 
     # test_instance = TestSenseFinisher()
     # test_instance.test_sense_finisher()
