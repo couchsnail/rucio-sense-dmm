@@ -14,6 +14,9 @@ host=
 user=
 password=
 
-[fts-monit]
-host=
-auth_token=
+[fts]
+fts_host=
+cert=
+key=
+monit_host=
+monit_auth_token=

@@ -8,7 +8,7 @@ import json
 from dmm.utils.misc import get_request_id
 
 from dmm.db.session import get_engine
-from dmm.core.sense_api import get_uri, get_site_info
+from dmm.utils.sense import get_site_info
 
 from dmm.utils.config import config_get
 

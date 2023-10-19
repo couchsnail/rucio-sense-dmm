@@ -1,7 +1,8 @@
 import networkx as nx
+import logging
 
 from dmm.db.session import databased
-from dmm.utils.dbutil import get_request_by_status, get_site
+from dmm.utils.db import get_request_by_status, get_site
 
 class NetworkGraph:
     def __init__(self):

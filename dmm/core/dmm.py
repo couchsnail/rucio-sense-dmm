@@ -22,14 +22,18 @@ class DMM:
     def start(self):
         logging.info("Starting Daemons")
         stager_process = Process(target=run_daemon, 
-                                 args=(stager_daemon, self.lock, self.daemon_frequency))
+                                 args=(stager_daemon, self.lock, self.daemon_frequency), 
+                                 name="STAGER")
         decision_process = Process(target=run_daemon, 
                                    args=(decision_daemon, self.lock, self.daemon_frequency), 
-                                   kwargs={"network_graph": self.network_graph})
+                                   kwargs={"network_graph": self.network_graph}, 
+                                   name="DECISION")
         provision_process = Process(target=run_daemon, 
-                                    args=(provision_daemon, self.lock, self.daemon_frequency))
+                                    args=(provision_daemon, self.lock, self.daemon_frequency), 
+                                    name="PROVISIONER")
         reaper_process = Process(target=run_daemon, 
-                                 args=(reaper_daemon, self.lock, self.daemon_frequency))
+                                 args=(reaper_daemon, self.lock, self.daemon_frequency), 
+                                 name="REAPER")
 
         stager_process.start()
         provision_process.start()
@@ -45,5 +49,7 @@ class DMM:
             while True:
                 logging.info("Waiting for the next connection")
                 connection, address = listener.accept()
-                client_thread = Process(target=handle_client, args=(self.lock, connection, address))
+                client_thread = Process(target=handle_client, 
+                                        args=(self.lock, connection, address), 
+                                        name="HANDLER")
                 client_thread.start()

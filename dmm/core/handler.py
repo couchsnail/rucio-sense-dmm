@@ -4,7 +4,7 @@ from time import sleep
 
 from dmm.utils.misc import get_request_id, wait
 from dmm.utils.common import subnet_allocation
-from dmm.utils.dbutil import get_request_from_id, mark_requests, get_site
+from dmm.utils.db import get_request_from_id, mark_requests, get_site
 from dmm.db.models import Request, Site, FTSTransfer
 from dmm.db.session import databased
 

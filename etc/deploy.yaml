@@ -25,6 +25,10 @@ spec:
         - name: sense-config
           mountPath: /root/.sense-o-auth.yaml
           subPath: .sense-o-auth.yaml
+        - name: proxy-volume
+          mountPath: /opt/proxy
+        - name: ca-volume
+          mountPath: /etc/grid-security/certificates/
       nodeSelector:
         kubernetes.io/hostname: nrp-01.nrp-nautilus.io
       volumes:
@@ -34,3 +38,11 @@ spec:
       - name: sense-config
         secret:
           secretName: sense-config
+      - name: proxy-volume
+        secret:
+          defaultMode: 420
+          secretName: rucio-server-rucio-x509up
+      - name: ca-volume
+        secret:
+          defaultMode: 420
+          secretName: rucio-server-rucio-ca-bundle

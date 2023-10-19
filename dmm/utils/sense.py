@@ -15,14 +15,14 @@ def get_profile_uuid():
     global PROFILE_UUID
     if PROFILE_UUID == "":
         PROFILE_UUID = config_get("sense", "profile_uuid")
-    logging.info(f"Using SENSE Profile: {PROFILE_UUID}")
+    logging.debug(f"Using SENSE Profile: {PROFILE_UUID}")
     return PROFILE_UUID
 
 def good_response(response):
     return bool(response and not any("ERROR" in r for r in response))
 
 def get_uri(rse_name, regex=".*?", full=False):
-    logging.info(f"Getting URI for {rse_name}")
+    logging.debug(f"Getting URI for {rse_name}")
     discover_api = DiscoverApi()
     response = discover_api.discover_lookup_name_get(rse_name, search="NetworkAddress")
     if not good_response(response):
@@ -39,7 +39,7 @@ def get_uri(rse_name, regex=".*?", full=False):
     root_uri = discover_api.discover_lookup_rooturi_get(full_uri)
     if not good_response(root_uri):
         raise ValueError(f"Discover query failed for {full_uri}")
-    logging.info(f"Got URI: {root_uri} for {rse_name}")
+    logging.debug(f"Got URI: {root_uri} for {rse_name}")
     return root_uri
 
 def get_site_info(rse_name):
@@ -50,7 +50,7 @@ def get_site_info(rse_name):
     return response
 
 def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias=""):
-    logging.info("Staging new SENSE link")
+    logging.debug("Staging new SENSE link")
     workflow_api = WorkflowCombinedApi()
     workflow_api.instance_new() if instance_uuid == "" else setattr(workflow_api, "si_uuid", instance_uuid)
     vlan_tag = config_get("sense", "vlan_tag", default="Any")
@@ -86,7 +86,7 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
             return response["service_uuid"], float(result["bandwidth"])
 
 def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, alias=""):
-    logging.info(f"Provisioning staged {int(bandwidth) / 1000}G link with instance uuid {instance_uuid}")
+    logging.debug(f"Provisioning staged {int(bandwidth) / 1000}G link with instance uuid {instance_uuid}")
     workflow_api = WorkflowCombinedApi()
     workflow_api.si_uuid = instance_uuid
     vlan_tag = config_get("sense", "vlan_tag", default="Any")
@@ -117,7 +117,7 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
     workflow_api.instance_operate("provision", sync="true")
 
 def delete_link(instance_uuid):
-    logging.info(f"Deleting link for instance uuid {instance_uuid}")
+    logging.debug(f"Deleting link for instance uuid {instance_uuid}")
     workflow_api = WorkflowCombinedApi()
     status = workflow_api.instance_get_status(si_uuid=instance_uuid)
     if "error" in status:
@@ -125,7 +125,7 @@ def delete_link(instance_uuid):
     if not any(status.startswith(s) for s in ["CREATE", "REINSTATE", "MODIFY"]):
         raise ValueError(f"Cannot cancel an instance in status '{status}'")
     workflow_api.instance_operate("cancel", si_uuid=instance_uuid, sync="true", force=str("READY" not in status).lower())
-    logging.info(f"Link status is now {status}")
+    logging.debug(f"Link status is now {status}")
     total_time = 0
     while "CANCEL - READY" not in status and total_time < 30:
         sleep(5)

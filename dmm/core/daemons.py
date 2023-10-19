@@ -3,13 +3,16 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import logging
 
-from dmm.utils.dbutil import get_request_by_status, mark_requests, get_site
+from dmm.utils.db import get_request_by_status, mark_requests, get_site
+from dmm.utils.fts import modify_link_config
+import dmm.utils.sense as sense
+
 from dmm.db.session import databased
-import dmm.core.sense_api as sense_api
 
 def stage_sense_link(req, session):
+    logging.info(f"Staging SENSE link for request {req.request_id}")
     if req.src_ipv6_block != "best_effort":
-        sense_link_id, _ = sense_api.stage_link(
+        sense_link_id, _ = sense.stage_link(
             get_site(req.src_site, session=session).sense_uri,
             get_site(req.dst_site, session=session).sense_uri,
             req.src_ipv6_block,
@@ -18,10 +21,13 @@ def stage_sense_link(req, session):
             alias=req.request_id
         )
         req.update({"sense_link_id": sense_link_id})
+        modify_link_config(req, max_active=50, min_active=50)
+    logging.info(f"SENSE instance with UUID {sense_link_id} staged for request {req.request_id}")
 
 def provision_sense_request(req, session):
+    logging.info(f"Provisioning SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth}")
     if req.src_ipv6_block != "best_effort":
-        sense_api.provision_link(
+        sense.provision_link(
             req.sense_link_id,
             get_site(req.src_site, session=session).sense_uri,
             get_site(req.dst_site, session=session).sense_uri,
@@ -30,6 +36,8 @@ def provision_sense_request(req, session):
             int(req.bandwidth),
             alias=req.request_id
         )
+        modify_link_config(req, max_active=2000, min_active=2000)
+    logging.info(f"SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth} Provisioned")
 
 @databased
 def stager_daemon(session=None):
@@ -63,22 +71,18 @@ def provision_daemon(session=None):
     reqs_decided = [req for req in get_request_by_status(status=["DECIDED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = []
-
         for req in reqs_decided:
             future = executor.submit(provision_sense_request, req, session)
             futures.append(future)
-
-        # Wait for all futures to complete
         for future in futures:
             future.result()
-
     mark_requests(reqs_decided, "PROVISIONED", session)
 
 @databased
 def reaper_daemon(session=None):
     for req in get_request_by_status(status=["FINISHED"], session=session):
         if (datetime.utcnow() - req.updated_at).seconds > 600:
-            sense_api.delete_link(req.sense_link_id)
+            sense.delete_link(req.sense_link_id)
             req.delete(session)
 
 def run_daemon(daemon, lock, frequency, **kwargs):
