@@ -56,7 +56,6 @@ def submitter_handler(payload, session=None):
                     "n_transfers_submitted": req.n_transfers_submitted + report["n_transfers_submitted"]
                 }
             )
-            wait(req.transfer_status not in ["INIT"], timeout=30)
             sense_map[rule_id][rse_pair_id] = {
                 req.src_site: req.src_url,
                 req.dst_site: req.dst_url

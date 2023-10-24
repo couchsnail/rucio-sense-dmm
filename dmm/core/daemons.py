@@ -22,6 +22,7 @@ def stage_sense_link(req, session):
         )
         req.update({"sense_link_id": sense_link_id})
         modify_link_config(req, max_active=50, min_active=50)
+    mark_requests([req], "STAGED", session)
     logging.info(f"SENSE instance with UUID {sense_link_id} staged for request {req.request_id}")
 
 def provision_sense_request(req, session):
@@ -37,6 +38,7 @@ def provision_sense_request(req, session):
             alias=req.request_id
         )
         modify_link_config(req, max_active=2000, min_active=2000)
+    mark_requests([req], "PROVISIONED", session)
     logging.info(f"SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth} Provisioned")
 
 @databased
@@ -47,10 +49,6 @@ def stager_daemon(session=None):
         for req in reqs_init:
             future = executor.submit(stage_sense_link, req, session)
             futures.append(future)
-        # Wait for all futures to complete
-        for future in futures:
-            future.result()
-    mark_requests(reqs_init, "STAGED", session)
 
 @databased
 def decision_daemon(network_graph=None, session=None):
@@ -74,9 +72,6 @@ def provision_daemon(session=None):
         for req in reqs_decided:
             future = executor.submit(provision_sense_request, req, session)
             futures.append(future)
-        for future in futures:
-            future.result()
-    mark_requests(reqs_decided, "PROVISIONED", session)
 
 @databased
 def reaper_daemon(session=None):

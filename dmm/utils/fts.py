@@ -13,11 +13,13 @@ def modify_link_config(req, max_active, min_active):
         'Content-Type': 'application/json',
         'Accept': 'application/json'
     }
+    src_url_no_port = req.src_url.split(":")[0]
+    dst_url_no_port = req.dst_url.split(":")[0]
 
     data = {
-        "symbolicname": "-".join([req.src_url, req.dst_url]),
-        "source": req.src_url,
-        "destination": req.dst_url,
+        "symbolicname": "-".join([src_url_no_port, dst_url_no_port]),
+        "source": src_url_no_port,
+        "destination": dst_url_no_port,
         "max_active": max_active,
         "min_active": min_active,
         "nostreams": 0,
@@ -27,10 +29,8 @@ def modify_link_config(req, max_active, min_active):
     }
     
     data = json.dumps(data)
-    
     response = requests.post(url, headers=headers, cert=cert, verify=capath, data=data)
-    
-    return response.status_code
+    logging.info(f"FTS link config modified, response: {response}")
 
 def delete_link_config(req):
     base_url = config_get("fts", "fts_host")
