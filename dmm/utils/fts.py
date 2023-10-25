@@ -13,8 +13,9 @@ def modify_link_config(req, max_active, min_active):
         'Content-Type': 'application/json',
         'Accept': 'application/json'
     }
-    src_url_no_port = req.src_url.split(":")[0]
-    dst_url_no_port = req.dst_url.split(":")[0]
+    
+    src_url_no_port = "davs://" + req.src_url.split(":")[0]
+    dst_url_no_port = "davs://" + req.dst_url.split(":")[0]
 
     data = {
         "symbolicname": "-".join([src_url_no_port, dst_url_no_port]),
