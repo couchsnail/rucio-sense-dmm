@@ -8,19 +8,19 @@ class Config:
     def __init__(self):
         self.parser = ConfigParser.ConfigParser()
 
-        if 'DMM_CONFIG' in os.environ:
-            self.configfile = os.environ['DMM_CONFIG']
+        if "DMM_CONFIG" in os.environ:
+            self.configfile = os.environ["DMM_CONFIG"]
         
         else:
-            confdir = '/opt/dmm'
-            config = os.path.join(confdir, 'dmm.cfg')
+            confdir = "/opt/dmm"
+            config = os.path.join(confdir, "dmm.cfg")
             self.configfile = config if os.path.exists(config) else None
 
         if not self.configfile:
-            raise RuntimeError('configuration file not found.')
+            raise RuntimeError("configuration file not found.")
         
         if not self.parser.read(self.configfile) == [self.configfile]:
-            raise RuntimeError('Could not load DMM configuration file.')
+            raise RuntimeError("Could not load DMM configuration file.")
 
 def get_config():
     """Factory function for the configuration class. Returns the ConfigParser instance."""
@@ -37,7 +37,6 @@ def config_get(section, option, default=None, extract_function=ConfigParser.Conf
 
     except Exception as e:
         print(e)
-    #    raise RuntimeError(f'{section} not found in DMM config')
 
 def config_get_bool(section, option, default=None):
     return bool(config_get(section, option, extract_function=ConfigParser.ConfigParser.getboolean))

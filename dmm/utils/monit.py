@@ -1,5 +1,3 @@
-import logging
-import time
 import json
 
 from requests.sessions import Session
@@ -86,7 +84,7 @@ def fts_submit_job_query(config, job_id):
                 ]
             }
         },
-        "_source": ['data.tr_timestamp_start', 'data.tr_timestamp_complete']
+        "_source": ["data.tr_timestamp_start", "data.tr_timestamp_complete"]
     }
     data_string = json.dumps(data)
     response = config.fts_session.get(query_addr, data=data_string).json()

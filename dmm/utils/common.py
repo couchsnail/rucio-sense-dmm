@@ -1,6 +1,19 @@
 import json
+import requests
 
-from dmm.db.models import Request
+from dmm.utils.db import get_site
+from dmm.utils.config import config_get
+from dmm.db.models import Request, Site
+
+def get_site_ips(site, session=None):
+    cert = config_get("dmm", "siterm_cert")
+    key = config_get("dmm", "siterm_key")
+    capath = "/etc/grid-security/certificates"
+    
+    site_ = get_site(site, session)
+    data = requests.get(str(site_.query_url) + "/MAIN/sitefe/json/frontend/configuration", cert=(cert, key), verify=capath)
+
+    return data["general"]["metadata"]["xrootd"]
 
 def subnet_allocation(req, session=None):
     with open("/opt/dmm/sites.json") as f:

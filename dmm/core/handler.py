@@ -1,6 +1,5 @@
 import logging
 import json
-from time import sleep
 
 from dmm.utils.misc import get_request_id, wait
 from dmm.utils.common import subnet_allocation
@@ -82,7 +81,7 @@ def finisher_handler(payload, session=None):
                     "external_ids": [FTSTransfer(value=ext_id) for ext_id in report["external_ids"]]
                 }
             )
-            if req.n_transfers_finished == req.n_transfers_total:
+            if req.n_transfers_finished >= req.n_transfers_total:
                 mark_requests([req], "FINISHED", session)
     logging.info("Closing Finisher Handler")
 

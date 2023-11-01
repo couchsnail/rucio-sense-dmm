@@ -29,13 +29,11 @@ def get_uri(rse_name, regex=".*?", full=False):
         raise ValueError(f"Discover query failed for {rse_name}")
     response = json.loads(response)
     if not response["results"]:
-        raise ValueError(f"No results for '{rse_name}'")
+        raise ValueError(f"No results for {rse_name}")
     matched_results = [result for result in response["results"] if re.search(regex, result["name/tag/value"])]
     if len(matched_results) == 0:
-        raise ValueError(f"No results matched '{regex}'")
+        raise ValueError(f"No results matched {regex}")
     full_uri = matched_results[0]["resource"]
-    if full:
-        return full_uri
     root_uri = discover_api.discover_lookup_rooturi_get(full_uri)
     if not good_response(root_uri):
         raise ValueError(f"Discover query failed for {full_uri}")
@@ -113,6 +111,27 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
     response = json.loads(response)
     logging.debug(f"Provisioning got response {response}")
     workflow_api.instance_operate("provision", sync="true")
+
+def modify_link(instance_uuid, bandwidth, alias=""):
+    workflow_api = WorkflowCombinedApi()
+    workflow_api.si_uuid = instance_uuid
+    intent = {
+        "service_profile_uuid": get_profile_uuid(),
+        "queries": [
+            {
+                "ask": "edit",
+                "options": [
+                    {"data.connections[0].bandwidth.capacity": str(bandwidth)},
+                ]
+            }
+        ]
+    }
+    if alias:
+        intent["alias"] = alias
+    response = workflow_api.instance_modify(json.dumps(intent), sync="true")
+    if not good_response(response):
+        raise ValueError(f"SENSE query failed for {instance_uuid}")
+    logging.debug(f"Modify got response {response}")
 
 def delete_link(instance_uuid):
     workflow_api = WorkflowCombinedApi()
