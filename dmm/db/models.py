@@ -5,7 +5,7 @@ from datetime import datetime
 
 import json
 
-from dmm.utils.misc import get_request_id
+from dmm.utils.common import get_request_id
 
 from dmm.db.session import get_engine
 from dmm.utils.sense import get_site_info
