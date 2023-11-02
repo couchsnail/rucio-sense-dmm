@@ -1,11 +1,46 @@
 import logging
 import json
 
-from dmm.utils.misc import get_request_id, wait
-from dmm.utils.common import subnet_allocation
+from dmm.utils.common import get_request_id, wait
 from dmm.utils.db import get_request_from_id, mark_requests, get_site
 from dmm.db.models import Request, Site, FTSTransfer
 from dmm.db.session import databased
+
+def subnet_allocation(req, session=None):
+    with open("/opt/dmm/sites.json") as f:
+        sites = json.load(f)
+
+    src_site = sites.get(req.src_site, {})
+    dst_site = sites.get(req.dst_site, {})
+
+    src_ip_block = "best_effort"
+    dst_ip_block = "best_effort"
+
+    if req.priority != 0:
+        src_allocated = {str(req.src_ipv6_block) for req in session.query(Request.src_ipv6_block).filter(Request.src_site == req.src_site).all()}
+        dst_allocated = {str(req.dst_ipv6_block) for req in session.query(Request.dst_ipv6_block).filter(Request.dst_site == req.dst_site).all()}
+        for ip_block, url in src_site.get("ipv6_pool", {}).items():
+            if (ip_block not in src_allocated) and (ip_block not in dst_allocated):
+                src_ip_block = ip_block
+                break
+        for ip_block, url in dst_site.get("ipv6_pool", {}).items():
+            if (ip_block not in dst_allocated) and (ip_block not in src_allocated):
+                dst_ip_block = ip_block
+                break
+        src_url = src_site.get("ipv6_pool", {}).get(src_ip_block, "")
+        dst_url = dst_site.get("ipv6_pool", {}).get(dst_ip_block, "")
+
+    else:
+        src_url = src_site.get("best_effort", "")
+        dst_url = dst_site.get("best_effort", "")
+
+    req.update({
+        "src_ipv6_block": src_ip_block,
+        "dst_ipv6_block": dst_ip_block,
+        "src_url": src_url,
+        "dst_url": dst_url,
+        "transfer_status": "ALLOCATED"
+    })
 
 @databased
 def preparer_handler(payload, session=None):

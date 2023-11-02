@@ -4,6 +4,8 @@ port=
 authkey=
 monitoring=
 sites=
+siterm_cert=
+siterm_key=
 
 [sense]
 profile_uuid=

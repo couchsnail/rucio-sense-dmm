@@ -25,7 +25,7 @@ def stage_sense_link(req, session):
     mark_requests([req], "STAGED", session)
     logging.info(f"SENSE instance with UUID {sense_link_id} staged for request {req.request_id}")
 
-def provision_sense_request(req, session):
+def provision_sense_link(req, session):
     logging.info(f"Provisioning SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth}")
     if req.src_ipv6_block != "best_effort":
         sense.provision_link(
@@ -41,6 +41,17 @@ def provision_sense_request(req, session):
         modify_se_config(req, max_inbound=2000, max_outbound=2000)
     mark_requests([req], "PROVISIONED", session)
     logging.info(f"SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth} Provisioned")
+
+def modify_sense_link(req, session):
+    logging.info(f"Provisioning SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth}")
+    if req.src_ipv6_block != "best_effort":
+        sense.modify_link(
+            req.sense_link_id,
+            int(req.bandwidth),
+            alias=req.request_id
+        )
+    mark_requests([req], "MODIFIED", session)
+    logging.info(f"SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth} Modified")
 
 @databased
 def stager_daemon(session=None):
@@ -64,14 +75,34 @@ def decision_daemon(network_graph=None, session=None):
                 }
             )
         mark_requests([req], "DECIDED", session)
-
+    reqs_provisioned = [req for req in get_request_by_status(status=["PROVISIONED"], session=session)]
+    for req in reqs_provisioned:
+        if req.src_ipv6_block != "best_effort":
+            allocated_bandwidth = network_graph.get_bandwidth_for_request_id(req.request_id)
+            if allocated_bandwidth != req.bandwidth:
+                req.update(
+                    { 
+                        "bandwidth": allocated_bandwidth
+                    }
+                )
+                mark_requests([req], "STALE", session)
+    
 @databased
 def provision_daemon(session=None):
     reqs_decided = [req for req in get_request_by_status(status=["DECIDED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = []
         for req in reqs_decided:
-            future = executor.submit(provision_sense_request, req, session)
+            future = executor.submit(provision_sense_link, req, session)
+            futures.append(future)
+
+@databased
+def modifier_daemon(session=None):
+    reqs_stale = [req for req in get_request_by_status(status=["STALE"], session=session)]
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = []
+        for req in reqs_stale:
+            future = executor.submit(modify_sense_link, req, session)
             futures.append(future)
 
 @databased

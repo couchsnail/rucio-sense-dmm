@@ -30,8 +30,9 @@ def modify_link_config(req, max_active, min_active):
     }
     
     data = json.dumps(data)
-    response = requests.post(url + "/config/links/", headers=headers, cert=cert, verify=capath, data=data)
+    response = requests.post(url + "/config/links", headers=headers, cert=cert, verify=capath, data=data)
     logging.info(f"FTS link config modified, response: {response}")
+    return response
 
 def modify_se_config(req, max_inbound, max_outbound):
     url = config_get("fts", "fts_host")
@@ -78,5 +79,6 @@ def modify_se_config(req, max_inbound, max_outbound):
     }
     
     data = json.dumps(data)
-    response = requests.post(url + "/config/se/", headers=headers, cert=cert, verify=capath, data=data)
+    response = requests.post(url + "/config/se", headers=headers, cert=cert, verify=capath, data=data)
     logging.info(f"FTS storage config modified, response: {response}")
+    return response

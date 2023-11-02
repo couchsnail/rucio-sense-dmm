@@ -1,7 +1,7 @@
 from dmm.utils.config import config_get, config_get_int
 
 from dmm.core.handler import handle_client
-from dmm.core.daemons import run_daemon, stager_daemon, decision_daemon, provision_daemon, reaper_daemon
+from dmm.core.daemons import run_daemon, stager_daemon, decision_daemon, provision_daemon, modifier_daemon, reaper_daemon
 
 from dmm.core.decision import NetworkGraph
 
@@ -31,13 +31,17 @@ class DMM:
         provision_process = Process(target=run_daemon, 
                                     args=(provision_daemon, self.lock, self.daemon_frequency), 
                                     name="PROVISIONER")
+        modifier_process = Process(target=run_daemon, 
+                                    args=(modifier_daemon, self.lock, self.daemon_frequency), 
+                                    name="MODIFIER")
         reaper_process = Process(target=run_daemon, 
                                  args=(reaper_daemon, self.lock, self.daemon_frequency), 
                                  name="REAPER")
 
         stager_process.start()
-        provision_process.start()
         decision_process.start()
+        provision_process.start()
+        modifier_process.start()
         reaper_process.start()
 
         logging.info("Starting Handler")

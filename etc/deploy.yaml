@@ -29,6 +29,12 @@ spec:
           mountPath: /opt/proxy
         - name: ca-volume
           mountPath: /etc/grid-security/certificates/
+        - name: certs
+          mountPath: /opt/certs/key.pem
+          subPath: key.pem
+        - name: certs
+          mountPath: /opt/certs/cert.pem
+          subPath: cert.pem
       nodeSelector:
         kubernetes.io/hostname: nrp-01.nrp-nautilus.io
       volumes:
@@ -38,6 +44,14 @@ spec:
       - name: sense-config
         secret:
           secretName: sense-config
+      - name: certs
+        secret:
+          secretName: dmm-certs
+          items:
+            - key: cert.pem
+              path: cert.pem
+            - key: key.pem
+              path: key.pem
       - name: proxy-volume
         secret:
           defaultMode: 420
