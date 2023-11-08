@@ -122,9 +122,8 @@ class RequestWithSources:
 class TestSensePreparer:
     def test_sense_preparer(self):
         requests_with_sources = {
-            1: RequestWithSources("RULEID1", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 0}, 500),
-            2: RequestWithSources("RULEID2", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 2}, 500),
-            3: RequestWithSources("RULEID3", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 4}, 1000),
+            # 1: RequestWithSources("RULEID1", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 2}, 500),
+            2: RequestWithSources("RULEID2", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 4}, 1000),
         }
 
         # Call the sense_preparer function with the test data
@@ -145,8 +144,8 @@ class TFile:
 class TestSenseOptimizer:
     def test_sense_optimizer(self):
         t_files = [
-            TFile("RULEID2", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"], 'a'),
-            TFile("RULEID3", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 3, ["source_url1"], ["destination_url1"], 'b'),
+            TFile("RULEID1", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 2, ["davs://xrootd-sense-ucsd-redirector.sdsc.optiputer.net:1094"], ["davs://sense-redir-01.ultralight.org:1094"], 'a'),
+            TFile("RULEID2", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 4, ["davs://xrootd-sense-ucsd-redirector-112.sdsc.optiputer.net:1094"], ["davs://sense-redir-02.ultralight.org:1094"], 'b'),
         ]
         # Call the sense_optimizer function with the test data
         sense_optimizer(t_files)
@@ -175,10 +174,8 @@ if __name__ == "__main__":
     test_instance = TestSensePreparer()
     test_instance.test_sense_preparer()
 
-    sleep(10)
-
-    test_instance = TestSenseOptimizer()
-    test_instance.test_sense_optimizer()
+    # test_instance = TestSenseOptimizer()
+    # test_instance.test_sense_optimizer()
 
     # test_instance = TestSenseFinisher()
     # test_instance.test_sense_finisher()

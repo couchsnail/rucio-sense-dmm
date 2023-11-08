@@ -43,7 +43,7 @@ def provision_sense_link(req, session):
     logging.info(f"SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth} Provisioned")
 
 def modify_sense_link(req, session):
-    logging.info(f"Provisioning SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth}")
+    logging.info(f"Modifying SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth}")
     if req.src_ipv6_block != "best_effort":
         sense.modify_link(
             req.sense_link_id,
