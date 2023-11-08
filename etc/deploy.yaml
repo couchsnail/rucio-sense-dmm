@@ -25,8 +25,6 @@ spec:
         - name: sense-config
           mountPath: /root/.sense-o-auth.yaml
           subPath: .sense-o-auth.yaml
-        - name: proxy-volume
-          mountPath: /opt/proxy
         - name: ca-volume
           mountPath: /etc/grid-security/certificates/
         - name: certs
@@ -52,10 +50,6 @@ spec:
               path: cert.pem
             - key: key.pem
               path: key.pem
-      - name: proxy-volume
-        secret:
-          defaultMode: 420
-          secretName: rucio-server-rucio-x509up
       - name: ca-volume
         secret:
           defaultMode: 420

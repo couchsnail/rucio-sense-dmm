@@ -1,31 +1,16 @@
+<img src="dmm.png" width=164/>
+
 # DMM
-Data Movement Manager for the Rucio-SENSE interoperation prototype 
+Data Movement Manager (DMM) for the Rucio-SENSE interoperation prototype.
+
+DMM is the interface between Rucio (/FTS) and SENSE, making SDN operated HEP data-flows possible
+
+Based on the relative priorities of the datasets we construct peer-to-peer private vlans with respective dedicated bandwidths to ensure we have accountability in the use of resources.
 
 ## Setup
 ### Running in Kubernetes (Recommended)
-1. Create Configuration Secrets
-```
-kubectl create secret generic sense-config --from-file ~/.sense-o-auth.yaml 
-kubectl create secret generic dmm-config --from-file=dmm.cfg
-```
+1. Create Configuration Secrets (see etc/mksecrets.sh)
 2. Create Deployment
 ```
-kubectl apply -f deploy.yaml
-```
-### Running in Docker
-```
-docker run -v .sense-o-auth.yaml:/root/.sense-o-auth.yaml -v dmm.cfg:/opt/dmm/dmm.cfg -d -p 5000:5000 aaarora/dmm:latest
-```
-### Building from Source
-1. Install dependencies
-```
-pip3 install sense-o-api==1.23 sqlalchemy psycopg2-binary
-```
-2. Set Env Variables
-```
-source setup.sh
-```
-3. Start DMM 
-```
-./bin/dmm --loglevel debug
+kubectl apply -f etc/deploy.yaml
 ```
