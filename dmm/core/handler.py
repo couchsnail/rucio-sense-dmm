@@ -1,8 +1,8 @@
 import logging
 import json
 
-from dmm.utils.common import get_request_id, wait
-from dmm.utils.db import get_request_from_id, mark_requests, get_site
+from dmm.utils.common import get_request_id
+from dmm.utils.db import get_request_from_id, mark_requests, get_site, get_request_by_status, update_bandwidth
 from dmm.db.models import Request, Site, FTSTransfer
 from dmm.db.session import databased
 
@@ -16,9 +16,27 @@ def subnet_allocation(req, session=None):
     src_ip_block = "best_effort"
     dst_ip_block = "best_effort"
 
+    reqs_finished = [req_fin for req_fin in get_request_by_status(status=["FINISHED"], session=session)]
+
+    for req_fin in reqs_finished:
+        if (req_fin.src_site == req.src_site and req_fin.dst_site == req.dst_site):
+            req.update({
+                "src_ipv6_block": req_fin.src_ipv6_block,
+                "dst_ipv6_block": req_fin.dst_ipv6_block,
+                "src_url": req_fin.src_url,
+                "dst_url": req_fin.dst_url,
+                "transfer_status": "ALLOCATED"
+            })
+            mark_requests([req_fin], "DELETED", session)
+            return
+
     if req.priority != 0:
-        src_allocated = {str(req.src_ipv6_block) for req in session.query(Request.src_ipv6_block).filter(Request.src_site == req.src_site).all()}
-        dst_allocated = {str(req.dst_ipv6_block) for req in session.query(Request.dst_ipv6_block).filter(Request.dst_site == req.dst_site).all()}
+        src_allocated = {str(req.src_ipv6_block) for req in session.query(Request.src_ipv6_block)
+                         .filter(Request.src_site == req.src_site)
+                         .filter(Request.transfer_status != "DELETED").all()}
+        dst_allocated = {str(req.dst_ipv6_block) for req in session.query(Request.dst_ipv6_block)
+                         .filter(Request.dst_site == req.dst_site)
+                         .filter(Request.transfer_status != "DELETED").all()}
         for ip_block, url in src_site.get("ipv6_pool", {}).items():
             if (ip_block not in src_allocated) and (ip_block not in dst_allocated):
                 src_ip_block = ip_block
@@ -118,12 +136,13 @@ def finisher_handler(payload, session=None):
             )
             if req.n_transfers_finished >= req.n_transfers_total:
                 mark_requests([req], "FINISHED", session)
+                update_bandwidth(req, 1, session=session)
     logging.info("Closing Finisher Handler")
 
 def handle_client(lock, connection, address):
     try:
         logging.info(f"Connection accepted from {address}")
-        data = connection.recv(4096).decode()
+        data = connection.recv(8192).decode()
         if not data:
             return
         data = json.loads(data)

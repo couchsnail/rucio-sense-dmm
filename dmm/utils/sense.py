@@ -115,6 +115,7 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
 def modify_link(instance_uuid, bandwidth, alias=""):
     workflow_api = WorkflowCombinedApi()
     workflow_api.si_uuid = instance_uuid
+    status = workflow_api.instance_get_status(si_uuid=instance_uuid)
     intent = {
         "service_profile_uuid": get_profile_uuid(),
         "queries": [

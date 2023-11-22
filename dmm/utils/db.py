@@ -18,12 +18,16 @@ def get_active_sites(session=None):
 
 def mark_requests(reqs, status, session=None):
     for req in reqs:
-        req.update(
-            {
+        req.update({
                 "transfer_status": status
-            }
-        )
+        })
         logging.debug(f"Marked {req.request_id} as {status}")
+
+def update_bandwidth(req, bandwidth, session=None):
+    req.update({
+        "bandwidth": bandwidth
+    })
+    logging.debug(f"Updated bandwidth to {bandwidth} for {req.request_id}")
 
 def get_site_ips(site, session=None):
     cert = config_get("dmm", "siterm_cert")

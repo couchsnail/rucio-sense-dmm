@@ -74,7 +74,7 @@ def sense_optimizer(t_files):
         print(sense_map)
         sense_map = json.loads(sense_map)
 
-def sense_finisher(rule_id, replicas):
+def sense_finisher(reqs):
     """
     Parse replicas and update SENSE on how many jobs (per source+dest RSE pair) have 
     finished via DMM
@@ -83,33 +83,32 @@ def sense_finisher(rule_id, replicas):
     :param replicas:    Individual replicas produced by now-finished transfers
     """
     finisher_reports = {}
-    for replica in replicas:
-        src_name = replica.source
-        dst_name = "T2_US_Caltech_Test"
+
+    for req in reqs:
+        src_name = req["source_rse"]
+        dst_name = req["dest_rse"]
         rse_pair_id = __get_rse_pair_id(src_name, dst_name) # FIXME: probably wrong
-        if rse_pair_id not in finisher_reports.keys():
-            finisher_reports[rse_pair_id] = {
+        if req["rule_id"] not in finisher_reports.keys():
+            finisher_reports[req["rule_id"]] = {}
+            finisher_reports[req["rule_id"]][rse_pair_id] = {
                 "n_transfers_finished": 0,
                 "n_bytes_transferred": 0,
                 "external_ids": []
             }
-        finisher_reports[rse_pair_id]["n_transfers_finished"] += 1
-        finisher_reports[rse_pair_id]["n_bytes_transferred"] += replica["bytes"]
-        finisher_reports[rse_pair_id]["external_ids"].append(replica["external_id"])
+
+        finisher_reports[req["rule_id"]][rse_pair_id]["n_transfers_finished"] += 1
+        finisher_reports[req["rule_id"]][rse_pair_id]["n_bytes_transferred"] += req["bytes"]
+        if req["external_id"] not in finisher_reports[req["rule_id"]][rse_pair_id]["external_ids"]:
+            finisher_reports[req["rule_id"]][rse_pair_id]["external_ids"].append(req["external_id"])
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
         client.connect(ADDRESS)
-        data = json.dumps({"daemon": "FINISHER", "data": {rule_id: finisher_reports}})
+        data = json.dumps({"daemon": "FINISHER", "data": finisher_reports})
         client.send(data.encode())
+
 
 def __get_rse_pair_id(src_rse_name, dst_rse_name):
     return f"{src_rse_name}&{dst_rse_name}"
-
-def __get_host_port(url):
-    # Assumes the url is something like "protocol://hostname//path"
-    # TODO: Need to make more universal for other url formats.
-    return url.split("/")[2]
-
 
 class RequestWithSources:
     def __init__(self, rule_id, sources, dest, attributes, byte_count):
@@ -118,16 +117,6 @@ class RequestWithSources:
         self.sources = sources
         self.attributes = attributes
         self.byte_count = byte_count
-
-class TestSensePreparer:
-    def test_sense_preparer(self):
-        requests_with_sources = {
-            # 1: RequestWithSources("RULEID1", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 2}, 500),
-            2: RequestWithSources("RULEID2", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 4}, 1000),
-        }
-
-        # Call the sense_preparer function with the test data
-        sense_preparer(requests_with_sources)
 
 class TFile:
     def __init__(self, rule_id, metadata, priority, sources, destinations, data):
@@ -141,15 +130,6 @@ class TFile:
     def __getitem__(self, key):
         return getattr(self, key, None)
 
-class TestSenseOptimizer:
-    def test_sense_optimizer(self):
-        t_files = [
-            TFile("RULEID1", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 2, ["davs://xrootd-sense-ucsd-redirector.sdsc.optiputer.net:1094"], ["davs://sense-redir-01.ultralight.org:1094"], 'a'),
-            TFile("RULEID2", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 4, ["davs://xrootd-sense-ucsd-redirector-112.sdsc.optiputer.net:1094"], ["davs://sense-redir-02.ultralight.org:1094"], 'b'),
-        ]
-        # Call the sense_optimizer function with the test data
-        sense_optimizer(t_files)
-
 class Replica:
     def __init__(self, bytes, source, external_id):
         self.bytes = bytes
@@ -159,23 +139,15 @@ class Replica:
     def __getitem__(self, key):
         return getattr(self, key, None)
 
-class TestSenseFinisher:
-    def test_sense_finisher(self):
-        rule_id = "rule1"
-        replicas = [
-            Replica(500, "T2_US_SDSC", "external_id1"),
-            Replica(1000, "T2_US_SDSC", "external_id2"),
-        ]
-
-        # Call the sense_finisher function with the test data
-        sense_finisher(rule_id, replicas)
-
 if __name__ == "__main__":
-    test_instance = TestSensePreparer()
-    test_instance.test_sense_preparer()
+    # sense_preparer({1: RequestWithSources("RULEID1", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 2}, 500)})
+    # sense_optimizer([TFile("RULEID1", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 2, ["test1"], ["test2"], 'a')])
+    # sense_finisher([{"rule_id": "RULEID1", "bytes": 500, "source_rse": "T2_US_SDSC", "dest_rse": "T2_US_Caltech_Test", "external_id": 'abc'}])
 
-    # test_instance = TestSenseOptimizer()
-    # test_instance.test_sense_optimizer()
+    # sense_preparer({2: RequestWithSources("RULEID2", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 4}, 1000)})
+    # sense_optimizer([TFile("RULEID2", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 4, ["test3"], ["test4"], 'b')])
+    # sense_finisher([{"rule_id": "RULEID2", "bytes": 1000, "source_rse": "T2_US_SDSC", "dest_rse": "T2_US_Caltech_Test", "external_id": 'bcd'}])
 
-    # test_instance = TestSenseFinisher()
-    # test_instance.test_sense_finisher()
+    # sense_preparer({3: RequestWithSources("RULEID3", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 4}, 1000)})
+    # sense_optimizer([TFile("RULEID3", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 4, ["test5"], ["test6"], 'c')])
+    # sense_finisher([{"rule_id": "RULEID3", "bytes": 1000, "source_rse": "T2_US_SDSC", "dest_rse": "T2_US_Caltech_Test", "external_id": 'efg'}])

@@ -3,7 +3,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import logging
 
-from dmm.utils.db import get_request_by_status, mark_requests, get_site
+from dmm.utils.db import get_request_by_status, mark_requests, get_site, update_bandwidth
 from dmm.utils.fts import modify_link_config, modify_se_config
 import dmm.utils.sense as sense
 from dmm.db.session import databased
@@ -37,8 +37,8 @@ def provision_sense_link(req, session):
             int(req.bandwidth),
             alias=req.request_id
         )
-        modify_link_config(req, max_active=2000, min_active=2000)
-        modify_se_config(req, max_inbound=2000, max_outbound=2000)
+        modify_link_config(req, max_active=500, min_active=500)
+        modify_se_config(req, max_inbound=500, max_outbound=500)
     mark_requests([req], "PROVISIONED", session)
     logging.info(f"SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth} Provisioned")
 
@@ -50,17 +50,14 @@ def modify_sense_link(req, session):
             int(req.bandwidth),
             alias=req.request_id
         )
-    mark_requests([req], "MODIFIED", session)
     logging.info(f"SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth} Modified")
 
 @databased
 def stager_daemon(session=None):
     reqs_init = [req for req in get_request_by_status(status=["ALLOCATED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = []
         for req in reqs_init:
-            future = executor.submit(stage_sense_link, req, session)
-            futures.append(future)
+            executor.submit(stage_sense_link, req, session)
 
 @databased
 def decision_daemon(network_graph=None, session=None):
@@ -69,41 +66,30 @@ def decision_daemon(network_graph=None, session=None):
     for req in reqs_staged:
         if req.src_ipv6_block != "best_effort":
             allocated_bandwidth = network_graph.get_bandwidth_for_request_id(req.request_id)
-            req.update(
-                { 
-                    "bandwidth": allocated_bandwidth
-                }
-            )
+            update_bandwidth(req, allocated_bandwidth, session=session)
         mark_requests([req], "DECIDED", session)
     reqs_provisioned = [req for req in get_request_by_status(status=["PROVISIONED"], session=session)]
     for req in reqs_provisioned:
         if req.src_ipv6_block != "best_effort":
             allocated_bandwidth = network_graph.get_bandwidth_for_request_id(req.request_id)
             if allocated_bandwidth != req.bandwidth:
-                req.update(
-                    { 
-                        "bandwidth": allocated_bandwidth
-                    }
-                )
+                update_bandwidth(req, allocated_bandwidth, session=session)
                 mark_requests([req], "STALE", session)
     
 @databased
 def provision_daemon(session=None):
     reqs_decided = [req for req in get_request_by_status(status=["DECIDED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = []
         for req in reqs_decided:
-            future = executor.submit(provision_sense_link, req, session)
-            futures.append(future)
+            executor.submit(provision_sense_link, req, session)
 
 @databased
 def modifier_daemon(session=None):
     reqs_stale = [req for req in get_request_by_status(status=["STALE"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = []
         for req in reqs_stale:
-            future = executor.submit(modify_sense_link, req, session)
-            futures.append(future)
+            executor.submit(modify_sense_link, req, session)
+            mark_requests([req], "PROVISIONED", session)
 
 @databased
 def reaper_daemon(session=None):
@@ -112,7 +98,7 @@ def reaper_daemon(session=None):
         if (datetime.utcnow() - req.updated_at).seconds > 600:
             sense.delete_link(req.sense_link_id)
             req.delete(session)
-        mark_requests([req], "DELETED", session)
+            mark_requests([req], "DELETED", session)
 
 def run_daemon(daemon, lock, frequency, **kwargs):
     while True:

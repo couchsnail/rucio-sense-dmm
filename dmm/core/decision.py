@@ -1,5 +1,4 @@
 import networkx as nx
-import logging
 
 from dmm.db.session import databased
 from dmm.utils.db import get_request_by_status, get_site
@@ -10,7 +9,14 @@ class NetworkGraph:
     
     @databased
     def update(self, session=None):
-        reqs =  get_request_by_status(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED", "FINISHED"], session=session)
+        reqs_deleted = get_request_by_status(status=["DELETED"], session=session)
+        for req_del in reqs_deleted:
+            for u, v, key, attr in self.graph.edges(keys=True, data=True):
+                if (attr["request_id"] == req_del.request_id):
+                    self.graph.remove_edge(req_del.src_site, req_del.dst_site, key=key)
+                    break
+
+        reqs =  get_request_by_status(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED", "FINISHED", "STALE"], session=session)
         for req in reqs:
             if req.priority != 0:    
                 if not self.graph.has_node(req.src_site):
