@@ -24,14 +24,14 @@ def subnet_allocation(req, session=None):
             return
 
     if req.priority != 0:
-        src_ip_block = get_allocation(req.src_site, req.request_id+"_src")
-        dst_ip_block = get_allocation(req.dst_site, req.request_id+"_dst")
+        src_ip_block = get_allocation(req.src_site, req.rule_id+"_"+req.src_site)
+        dst_ip_block = get_allocation(req.dst_site, req.rule_id+"_"+req.dst_site)
 
     src_ip_block = str(ipaddress.IPv6Network(src_ip_block))
     dst_ip_block = str(ipaddress.IPv6Network(dst_ip_block))
 
-    src_url = get_url_from_block(src_ip_block)
-    dst_url = get_url_from_block(dst_ip_block)
+    src_url = get_url_from_block(req.src_site, src_ip_block, session=session)
+    dst_url = get_url_from_block(req.dst_site, dst_ip_block, session=session)
 
     req.update({
         "src_ipv6_block": src_ip_block,

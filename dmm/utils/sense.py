@@ -49,11 +49,12 @@ def get_site_info(rse_name):
     return response
 
 def get_allocation(sitename, alloc_name):
+    logging.debug(f"Getting IPv6 allocation for {sitename}")
     addressApi = AddressApi()
-    pool_name = 'RUCIO_Site_BGP_Subnet_Pool-' + sitename
-    alloc_type = 'IPv6'
+    pool_name = "RUCIO_Site_BGP_Subnet_Pool-" + sitename
+    alloc_type = "IPv6"
     try:
-        response = addressApi.allocate_address(pool_name, alloc_type, alloc_name, netmask='/64', batch='subnet')
+        response = addressApi.allocate_address(pool_name, alloc_type, alloc_name, netmask="/64", batch="subnet")
         return response
     except ValueError as ex:
         addressApi.free_address(pool_name, name=alloc_name)

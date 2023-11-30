@@ -35,6 +35,5 @@ def get_url_from_block(site, ipv6_block, session=None):
     capath = "/etc/grid-security/certificates"
     
     site_ = get_site(site, session)
-    data = requests.get(str(site_.query_url) + "/MAIN/sitefe/json/frontend/configuration", cert=(cert, key), verify=capath)
-
-    return data["general"]["metadata"]["xrootd"][ipv6_block]
+    data = requests.get(str(site_.query_url) + "/MAIN/sitefe/json/frontend/configuration", cert=(cert, key), verify=False).json()
+    return data[site]["metadata"]["xrootd"][ipv6_block]

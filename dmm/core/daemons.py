@@ -11,45 +11,48 @@ from dmm.db.session import databased
 def stage_sense_link(req, session):
     logging.info(f"Staging SENSE link for request {req.request_id}")
     if req.src_ipv6_block != "best_effort":
-        sense_link_id, _ = sense.stage_link(
-            get_site(req.src_site, session=session).sense_uri,
-            get_site(req.dst_site, session=session).sense_uri,
-            req.src_ipv6_block,
-            req.dst_ipv6_block,
-            instance_uuid="",
-            alias=req.request_id
-        )
+        # sense_link_id, _ = sense.stage_link(
+        #     get_site(req.src_site, session=session).sense_uri,
+        #     get_site(req.dst_site, session=session).sense_uri,
+        #     req.src_ipv6_block,
+        #     req.dst_ipv6_block,
+        #     instance_uuid="",
+        #     alias=req.request_id
+        # )
+        sense_link_id = "foo"
         req.update({"sense_link_id": sense_link_id})
-        modify_link_config(req, max_active=50, min_active=50)
-        modify_se_config(req, max_inbound=50, max_outbound=50)
+        # modify_link_config(req, max_active=50, min_active=50)
+        # modify_se_config(req, max_inbound=50, max_outbound=50)
     mark_requests([req], "STAGED", session)
     logging.info(f"SENSE instance with UUID {sense_link_id} staged for request {req.request_id}")
 
 def provision_sense_link(req, session):
     logging.info(f"Provisioning SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth}")
     if req.src_ipv6_block != "best_effort":
-        sense.provision_link(
-            req.sense_link_id,
-            get_site(req.src_site, session=session).sense_uri,
-            get_site(req.dst_site, session=session).sense_uri,
-            req.src_ipv6_block,
-            req.dst_ipv6_block,
-            int(req.bandwidth),
-            alias=req.request_id
-        )
-        modify_link_config(req, max_active=500, min_active=500)
-        modify_se_config(req, max_inbound=500, max_outbound=500)
+        # sense.provision_link(
+        #     req.sense_link_id,
+        #     get_site(req.src_site, session=session).sense_uri,
+        #     get_site(req.dst_site, session=session).sense_uri,
+        #     req.src_ipv6_block,
+        #     req.dst_ipv6_block,
+        #     int(req.bandwidth),
+        #     alias=req.request_id
+        # )
+        # modify_link_config(req, max_active=500, min_active=500)
+        # modify_se_config(req, max_inbound=500, max_outbound=500)
+        pass
     mark_requests([req], "PROVISIONED", session)
     logging.info(f"SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth} Provisioned")
 
 def modify_sense_link(req, session):
     logging.info(f"Modifying SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth}")
     if req.src_ipv6_block != "best_effort":
-        sense.modify_link(
-            req.sense_link_id,
-            int(req.bandwidth),
-            alias=req.request_id
-        )
+        # sense.modify_link(
+        #     req.sense_link_id,
+        #     int(req.bandwidth),
+        #     alias=req.request_id
+        # )
+        pass
     logging.info(f"SENSE link UUID {req.sense_link_id} for request {req.request_id} with bandwidth {req.bandwidth} Modified")
 
 @databased

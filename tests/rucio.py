@@ -140,7 +140,7 @@ class Replica:
         return getattr(self, key, None)
 
 if __name__ == "__main__":
-    # sense_preparer({1: RequestWithSources("RULEID1", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 2}, 500)})
+    sense_preparer({1: RequestWithSources("RULEID1", ["T2_US_SDSC"], "T2_US_Caltech_Test", {"priority": 2}, 500)})
     # sense_optimizer([TFile("RULEID1", {"src_rse": "T2_US_SDSC", "dst_rse": "T2_US_Caltech_Test"}, 2, ["test1"], ["test2"], 'a')])
     # sense_finisher([{"rule_id": "RULEID1", "bytes": 500, "source_rse": "T2_US_SDSC", "dest_rse": "T2_US_Caltech_Test", "external_id": 'abc'}])
 
