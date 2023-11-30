@@ -8,6 +8,7 @@ from dmm.utils.config import config_get
 
 from sense.client.workflow_combined_api import WorkflowCombinedApi
 from sense.client.discover_api import DiscoverApi
+from sense.client.address_api import AddressApi
 
 PROFILE_UUID = ""
 
@@ -46,6 +47,22 @@ def get_site_info(rse_name):
     if not good_response(response):
         raise ValueError(f"Site Info Query Failed")
     return response
+
+def get_allocation(sitename, alloc_name):
+    addressApi = AddressApi()
+    pool_name = 'RUCIO_Site_BGP_Subnet_Pool-' + sitename
+    alloc_type = 'IPv6'
+    try:
+        response = addressApi.allocate_address(pool_name, alloc_type, alloc_name, netmask='/64', batch='subnet')
+        return response
+    except ValueError as ex:
+        addressApi.free_address(pool_name, name=alloc_name)
+        raise ValueError(ex)
+
+def free_allocation(sitename, alloc_name):
+    addressApi = AddressApi()
+    pool_name = 'RUCIO_Site_BGP_Subnet_Pool-' + sitename
+    addressApi.free_address(pool_name, name=alloc_name)
 
 def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias=""):
     workflow_api = WorkflowCombinedApi()

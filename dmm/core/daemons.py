@@ -97,6 +97,8 @@ def reaper_daemon(session=None):
     for req in reqs_finished:
         if (datetime.utcnow() - req.updated_at).seconds > 600:
             sense.delete_link(req.sense_link_id)
+            sense.free_allocation(req.src_site, req.request_id+"_src")
+            sense.free_allocation(req.dst_site, req.request_id+"_dst")
             req.delete(session)
             mark_requests([req], "DELETED", session)
 

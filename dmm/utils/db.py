@@ -19,7 +19,7 @@ def get_active_sites(session=None):
 def mark_requests(reqs, status, session=None):
     for req in reqs:
         req.update({
-                "transfer_status": status
+            "transfer_status": status
         })
         logging.debug(f"Marked {req.request_id} as {status}")
 
@@ -29,7 +29,7 @@ def update_bandwidth(req, bandwidth, session=None):
     })
     logging.debug(f"Updated bandwidth to {bandwidth} for {req.request_id}")
 
-def get_site_ips(site, session=None):
+def get_url_from_block(site, ipv6_block, session=None):
     cert = config_get("dmm", "siterm_cert")
     key = config_get("dmm", "siterm_key")
     capath = "/etc/grid-security/certificates"
@@ -37,4 +37,4 @@ def get_site_ips(site, session=None):
     site_ = get_site(site, session)
     data = requests.get(str(site_.query_url) + "/MAIN/sitefe/json/frontend/configuration", cert=(cert, key), verify=capath)
 
-    return data["general"]["metadata"]["xrootd"]
+    return data["general"]["metadata"]["xrootd"][ipv6_block]

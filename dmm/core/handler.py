@@ -1,21 +1,14 @@
 import logging
 import json
+import ipaddress
 
 from dmm.utils.common import get_request_id
-from dmm.utils.db import get_request_from_id, mark_requests, get_site, get_request_by_status, update_bandwidth
+from dmm.utils.db import get_request_from_id, mark_requests, get_site, get_request_by_status, update_bandwidth, get_url_from_block
 from dmm.db.models import Request, Site, FTSTransfer
 from dmm.db.session import databased
+from dmm.utils.sense import get_allocation
 
 def subnet_allocation(req, session=None):
-    with open("/opt/dmm/sites.json") as f:
-        sites = json.load(f)
-
-    src_site = sites.get(req.src_site, {})
-    dst_site = sites.get(req.dst_site, {})
-
-    src_ip_block = "best_effort"
-    dst_ip_block = "best_effort"
-
     reqs_finished = [req_fin for req_fin in get_request_by_status(status=["FINISHED"], session=session)]
 
     for req_fin in reqs_finished:
@@ -31,26 +24,14 @@ def subnet_allocation(req, session=None):
             return
 
     if req.priority != 0:
-        src_allocated = {str(req.src_ipv6_block) for req in session.query(Request.src_ipv6_block)
-                         .filter(Request.src_site == req.src_site)
-                         .filter(Request.transfer_status != "DELETED").all()}
-        dst_allocated = {str(req.dst_ipv6_block) for req in session.query(Request.dst_ipv6_block)
-                         .filter(Request.dst_site == req.dst_site)
-                         .filter(Request.transfer_status != "DELETED").all()}
-        for ip_block, url in src_site.get("ipv6_pool", {}).items():
-            if (ip_block not in src_allocated) and (ip_block not in dst_allocated):
-                src_ip_block = ip_block
-                break
-        for ip_block, url in dst_site.get("ipv6_pool", {}).items():
-            if (ip_block not in dst_allocated) and (ip_block not in src_allocated):
-                dst_ip_block = ip_block
-                break
-        src_url = src_site.get("ipv6_pool", {}).get(src_ip_block, "")
-        dst_url = dst_site.get("ipv6_pool", {}).get(dst_ip_block, "")
+        src_ip_block = get_allocation(req.src_site, req.request_id+"_src")
+        dst_ip_block = get_allocation(req.dst_site, req.request_id+"_dst")
 
-    else:
-        src_url = src_site.get("best_effort", "")
-        dst_url = dst_site.get("best_effort", "")
+    src_ip_block = str(ipaddress.IPv6Network(src_ip_block))
+    dst_ip_block = str(ipaddress.IPv6Network(dst_ip_block))
+
+    src_url = get_url_from_block(src_ip_block)
+    dst_url = get_url_from_block(dst_ip_block)
 
     req.update({
         "src_ipv6_block": src_ip_block,
