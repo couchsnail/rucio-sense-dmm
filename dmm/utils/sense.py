@@ -66,6 +66,7 @@ def free_allocation(sitename, alloc_name):
     addressApi.free_address(pool_name, name=alloc_name)
 
 def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias=""):
+    logging.info(f"staging sense link for request {alias}")
     workflow_api = WorkflowCombinedApi()
     workflow_api.instance_new() if instance_uuid == "" else setattr(workflow_api, "si_uuid", instance_uuid)
     vlan_tag = config_get("sense", "vlan_tag", default="Any")
@@ -101,6 +102,7 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
             return response["service_uuid"], float(result["bandwidth"])
 
 def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, alias=""):
+    logging.info(f"provisioning sense link for request {alias} with bandwidth {bandwidth / 1000} G")
     workflow_api = WorkflowCombinedApi()
     workflow_api.si_uuid = instance_uuid
     vlan_tag = config_get("sense", "vlan_tag", default="Any")
@@ -131,6 +133,7 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
     workflow_api.instance_operate("provision", sync="true")
 
 def modify_link(instance_uuid, bandwidth, alias=""):
+    logging.info(f"modifying sense link for request {alias} with new bandwidth {bandwidth}")
     workflow_api = WorkflowCombinedApi()
     workflow_api.si_uuid = instance_uuid
     status = workflow_api.instance_get_status(si_uuid=instance_uuid)
@@ -153,6 +156,7 @@ def modify_link(instance_uuid, bandwidth, alias=""):
     logging.debug(f"Modify got response {response}")
 
 def delete_link(instance_uuid):
+    logging.info(f"deleting sense link with uuid {instance_uuid}")
     workflow_api = WorkflowCombinedApi()
     status = workflow_api.instance_get_status(si_uuid=instance_uuid)
     if "error" in status:

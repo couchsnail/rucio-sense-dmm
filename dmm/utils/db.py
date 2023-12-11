@@ -1,8 +1,6 @@
 import logging
-import requests
 
 from dmm.db.models import Request, Site
-from dmm.utils.config import config_get
 
 def get_site(site_name, session=None):
     return session.query(Site).filter(Site.name == site_name).first()
@@ -28,12 +26,3 @@ def update_bandwidth(req, bandwidth, session=None):
         "bandwidth": bandwidth
     })
     logging.debug(f"Updated bandwidth to {bandwidth} for {req.request_id}")
-
-def get_url_from_block(site, ipv6_block, session=None):
-    cert = config_get("dmm", "siterm_cert")
-    key = config_get("dmm", "siterm_key")
-    capath = "/etc/grid-security/certificates"
-    
-    site_ = get_site(site, session)
-    data = requests.get(str(site_.query_url) + "/MAIN/sitefe/json/frontend/configuration", cert=(cert, key), verify=False).json()
-    return data[site]["metadata"]["xrootd"][ipv6_block]

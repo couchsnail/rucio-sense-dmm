@@ -1,9 +1,10 @@
 import logging
 import json
-import ipaddress
+from ipaddress import IPv6Network
 
 from dmm.utils.common import get_request_id
-from dmm.utils.db import get_request_from_id, mark_requests, get_site, get_request_by_status, update_bandwidth, get_url_from_block
+from dmm.utils.db import get_request_from_id, mark_requests, get_site, get_request_by_status, update_bandwidth
+from dmm.utils.ip import get_url_from_block
 from dmm.db.models import Request, Site, FTSTransfer
 from dmm.db.session import databased
 from dmm.utils.sense import get_allocation
@@ -27,8 +28,8 @@ def subnet_allocation(req, session=None):
         src_ip_block = get_allocation(req.src_site, req.rule_id+"_"+req.src_site)
         dst_ip_block = get_allocation(req.dst_site, req.rule_id+"_"+req.dst_site)
 
-    src_ip_block = str(ipaddress.IPv6Network(src_ip_block))
-    dst_ip_block = str(ipaddress.IPv6Network(dst_ip_block))
+    src_ip_block = str(IPv6Network(src_ip_block))
+    dst_ip_block = str(IPv6Network(dst_ip_block))
 
     src_url = get_url_from_block(req.src_site, src_ip_block, session=session)
     dst_url = get_url_from_block(req.dst_site, dst_ip_block, session=session)
