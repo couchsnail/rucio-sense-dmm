@@ -57,10 +57,11 @@ def get_allocation(sitename, alloc_name):
         response = addressApi.allocate_address(pool_name, alloc_type, alloc_name, netmask="/64", batch="subnet")
         return response
     except ValueError as ex:
+        logging.error(ex)
         addressApi.free_address(pool_name, name=alloc_name)
-        raise ValueError(ex)
 
 def free_allocation(sitename, alloc_name):
+    logging.debug(f"Freeing IPv6 allocation {alloc_name}")
     addressApi = AddressApi()
     pool_name = 'RUCIO_Site_BGP_Subnet_Pool-' + sitename
     addressApi.free_address(pool_name, name=alloc_name)

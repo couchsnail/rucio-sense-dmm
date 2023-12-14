@@ -25,8 +25,8 @@ def subnet_allocation(req, session=None):
             return
 
     if req.priority != 0:
-        src_ip_block = get_allocation(req.src_site, req.rule_id+"_"+req.src_site)
-        dst_ip_block = get_allocation(req.dst_site, req.rule_id+"_"+req.dst_site)
+        src_ip_block = get_allocation(req.src_site, "RUCIO_SENSE") #req.rule_id)
+        dst_ip_block = get_allocation(req.dst_site, "RUCIO_SENSE") #req.rule_id)
 
     src_ip_block = str(IPv6Network(src_ip_block))
     dst_ip_block = str(IPv6Network(dst_ip_block))

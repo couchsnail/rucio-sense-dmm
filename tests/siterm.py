@@ -11,6 +11,7 @@ def get_free_ipv6(sitename, alloc_name):
     addressApi.free_address(pool_name, name=alloc_name)
         # raise ValueError(ex)
 
-a = get_free_ipv6("T2_US_SDSC", "RULEID1_T2_US_SDSC")
-a = get_free_ipv6("T2_US_Caltech_Test", "RULEID1_T2_US_Caltech_Test")
+a = get_free_ipv6("T2_US_SDSC", "RUCIO_SENSE")
+a = get_free_ipv6("T1_US_FNAL", "RUCIO_SENSE")
+# a = get_free_ipv6("T2_US_Caltech_Test", "RULEID1_T2_US_Caltech_Test")
 print(a)
