@@ -1,59 +1,63 @@
-from dmm.utils.config import config_get, config_get_int
-
-from dmm.core.handler import handle_client
-from dmm.core.daemons import run_daemon, stager_daemon, decision_daemon, provision_daemon, modifier_daemon, reaper_daemon
-
-from dmm.core.decision import NetworkGraph
+from time import sleep
+import logging
 
 from multiprocessing import Process, Lock
-import logging
-import socket
+import networkx as nx
+
+from dmm.utils.config import config_get, config_get_int
+
+from dmm.core.rucio import preparer_daemon, rucio_modifier_daemon, submitter_daemon, finisher_daemon
+from dmm.core.sense import stager_daemon, provision_daemon, sense_modifier_daemon, reaper_daemon
+from dmm.core.decision import decision_daemon
 
 class DMM:
     def __init__(self):
-        # Config attrs
         self.host = config_get("dmm", "host", default="localhost")
         self.port = config_get_int("dmm", "port", default=5000)
         self.daemon_frequency = config_get_int("dmm", "daemon_frequency", default=60)
 
-        self.network_graph = NetworkGraph()
+        self.network_graph = nx.MultiGraph()
         self.lock = Lock()
+
+    @staticmethod
+    def run_daemon(daemon, lock, frequency, **kwargs):
+        while True:
+            logging.info(f"Running {daemon.__name__}")
+            with lock:
+                try:
+                    daemon(**kwargs)
+                except Exception as e:
+                    logging.error(f"{daemon.__name__} {e}")
+            sleep(frequency)
+            logging.info(f"{daemon.__name__} sleeping for {frequency} seconds")
+
+    def fork(self, daemons):
+        for daemon, kwargs in daemons:
+            proc = Process(target=self.run_daemon,
+                        args=(daemon, self.lock, self.daemon_frequency),
+                        kwargs=kwargs,
+                        name=daemon.__name__)
+            proc.start()
 
     def start(self):
         logging.info("Starting Daemons")
-        stager_process = Process(target=run_daemon, 
-                                 args=(stager_daemon, self.lock, self.daemon_frequency), 
-                                 name="STAGER")
-        decision_process = Process(target=run_daemon, 
-                                   args=(decision_daemon, self.lock, self.daemon_frequency), 
-                                   kwargs={"network_graph": self.network_graph}, 
-                                   name="DECISION")
-        provision_process = Process(target=run_daemon, 
-                                    args=(provision_daemon, self.lock, self.daemon_frequency), 
-                                    name="PROVISIONER")
-        modifier_process = Process(target=run_daemon, 
-                                    args=(modifier_daemon, self.lock, self.daemon_frequency), 
-                                    name="MODIFIER")
-        reaper_process = Process(target=run_daemon, 
-                                 args=(reaper_daemon, self.lock, self.daemon_frequency), 
-                                 name="REAPER")
-
-        stager_process.start()
-        decision_process.start()
-        provision_process.start()
-        modifier_process.start()
-        reaper_process.start()
-
-        logging.info("Starting Handler")
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
-            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            listener.bind((self.host, self.port))
-            listener.listen(1)
-            logging.info(f"Listening on {self.host}:{self.port}")
-            while True:
-                logging.info("Waiting for the next connection")
-                connection, address = listener.accept()
-                client_thread = Process(target=handle_client, 
-                                        args=(self.lock, connection, address), 
-                                        name="HANDLER")
-                client_thread.start()
+        rucio_daemons = {
+            preparer_daemon: None, 
+            submitter_daemon: None, 
+            rucio_modifier_daemon: None, 
+            finisher_daemon: None
+        }
+        self.fork(rucio_daemons)
+        
+        sense_daemons = {
+            stager_daemon: None, 
+            provision_daemon: None, 
+            sense_modifier_daemon: None,
+            reaper_daemon: None
+        }
+        self.fork(sense_daemons)
+        
+        dmm_daemons = {
+            decision_daemon: {"network_graph": self.network_graph}
+        }
+        self.fork(dmm_daemons)

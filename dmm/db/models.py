@@ -5,8 +5,6 @@ from datetime import datetime
 
 import json
 
-from dmm.utils.common import get_request_id
-
 from dmm.db.session import get_engine
 from dmm.utils.sense import get_site_info
 
@@ -45,8 +43,7 @@ class ModelBase(object):
 # DMM Data Structures
 class Request(BASE, ModelBase):
     __tablename__ = "requests"
-    request_id = Column(String(255), primary_key=True)
-    rule_id = Column(String(255))
+    rule_id = Column(String(255), primary_key=True)
     src_site = Column(String(255))
     dst_site = Column(String(255))
     priority = Column(Integer())
@@ -66,7 +63,6 @@ class Request(BASE, ModelBase):
 
     def __init__(self, **kwargs):
         super(Request, self).__init__(**kwargs)
-        self.request_id = get_request_id(self.rule_id, self.src_site, self.dst_site)
         self.n_transfers_submitted = 0
         self.n_bytes_transferred = 0
         self.n_transfers_finished = 0
@@ -75,7 +71,7 @@ class FTSTransfer(BASE, ModelBase):
     __tablename__ = "ftstransfers"
     id = Column(Integer(), autoincrement=True, primary_key=True)
     value = Column(String(255))    
-    request_id = Column(String(255), ForeignKey("requests.request_id"))  
+    rule_id = Column(String(255), ForeignKey("requests.rule_id"))  
     request = relationship("Request", back_populates="external_ids")
 
     def __init__(self, **kwargs):

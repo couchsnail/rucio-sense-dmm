@@ -2,27 +2,47 @@ import logging
 
 from dmm.db.models import Request, Site
 
-def get_site(site_name, session=None):
-    return session.query(Site).filter(Site.name == site_name).first()
+def get_site(site_name, attr=None, session=None):
+    try:
+        if attr:
+            return session.query(Site).filter(Site.name == site_name).first()[attr]
+        else:
+            return session.query(Site).filter(Site.name == site_name).first()
+    except Exception as e:
+        logging.error(f"Error getting site: {e}")
+        raise
 
 def get_request_from_id(request_id, session=None):
-    return session.query(Request).filter(Request.request_id == request_id).first()
+    try:
+        return session.query(Request).filter(Request.request_id == request_id).first()
+    except Exception as e:
+        logging.error(f"Error getting request from id: {e}")
+        raise
 
 def get_request_by_status(status, session=None):
-    return session.query(Request).filter(Request.transfer_status.in_(status)).all()
-
-def get_active_sites(session=None):
-    return session.query(Request.src_site.distinct(), Request.dst_site.distinct()).all()
+    try:
+        return session.query(Request).filter(Request.transfer_status.in_(status)).all()
+    except Exception as e:
+        logging.error(f"Error getting request by status: {e}")
+        raise
 
 def mark_requests(reqs, status, session=None):
-    for req in reqs:
-        req.update({
-            "transfer_status": status
-        })
-        logging.debug(f"Marked {req.request_id} as {status}")
+    try:
+        for req in reqs:
+            req.update({
+                "transfer_status": status
+            })
+            logging.debug(f"Marked {req.request_id} as {status}")
+    except Exception as e:
+        logging.error(f"Error marking requests: {e}")
+        raise
 
 def update_bandwidth(req, bandwidth, session=None):
-    req.update({
-        "bandwidth": bandwidth
-    })
-    logging.debug(f"Updated bandwidth to {bandwidth} for {req.request_id}")
+    try:
+        req.update({
+            "bandwidth": bandwidth
+        })
+        logging.debug(f"Updated bandwidth to {bandwidth} for {req.request_id}")
+    except Exception as e:
+        logging.error(f"Error updating bandwidth: {e}")
+        raise
