@@ -5,16 +5,17 @@ from dmm.db.models import Request, Site
 def get_site(site_name, attr=None, session=None):
     try:
         if attr:
-            return session.query(Site).filter(Site.name == site_name).first()[attr]
+            query = session.query(Site).filter(Site.name == site_name).first()
+            return getattr(query, attr)
         else:
             return session.query(Site).filter(Site.name == site_name).first()
     except Exception as e:
         logging.error(f"Error getting site: {e}")
         raise
 
-def get_request_from_id(request_id, session=None):
+def get_request_from_id(rule_id, session=None):
     try:
-        return session.query(Request).filter(Request.request_id == request_id).first()
+        return session.query(Request).filter(Request.rule_id == rule_id).first()
     except Exception as e:
         logging.error(f"Error getting request from id: {e}")
         raise

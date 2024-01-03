@@ -48,17 +48,12 @@ class Request(BASE, ModelBase):
     dst_site = Column(String(255))
     priority = Column(Integer())
     n_bytes_total = Column(Integer())
-    n_bytes_transferred = Column(Integer())
-    n_transfers_total = Column(Integer())
-    n_transfers_submitted = Column(Integer())
-    n_transfers_finished = Column(Integer())
     src_ipv6_block = Column(String(255))
     dst_ipv6_block = Column(String(255))
     src_url = Column(String(255))
     dst_url = Column(String(255))
     bandwidth = Column(Float())
     sense_link_id = Column(String(255))
-    external_ids = relationship("FTSTransfer", back_populates="request")  
     transfer_status = Column(String(255))
 
     def __init__(self, **kwargs):
@@ -66,16 +61,6 @@ class Request(BASE, ModelBase):
         self.n_transfers_submitted = 0
         self.n_bytes_transferred = 0
         self.n_transfers_finished = 0
-
-class FTSTransfer(BASE, ModelBase):
-    __tablename__ = "ftstransfers"
-    id = Column(Integer(), autoincrement=True, primary_key=True)
-    value = Column(String(255))    
-    rule_id = Column(String(255), ForeignKey("requests.rule_id"))  
-    request = relationship("Request", back_populates="external_ids")
-
-    def __init__(self, **kwargs):
-        super(FTSTransfer, self).__init__(**kwargs)
 
 class Site(BASE, ModelBase):
     __tablename__ = "sites"
@@ -99,5 +84,4 @@ class Site(BASE, ModelBase):
 # Create the tables if don't exist when module first imported.
 engine=get_engine()
 Request.__table__.create(bind=engine, checkfirst=True)
-FTSTransfer.__table__.create(bind=engine, checkfirst=True)
 Site.__table__.create(bind=engine, checkfirst=True)

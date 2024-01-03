@@ -12,8 +12,8 @@ from dmm.db.session import databased
 def stager_daemon(session=None):
     def stage_sense_link(req, session):
         sense_link_id, _ = sense.stage_link(
-            get_site(req.src_site, session=session).sense_uri,
-            get_site(req.dst_site, session=session).sense_uri,
+            get_site(req.src_site, attr="sense_uri", session=session),
+            get_site(req.dst_site, attr="sense_uri", session=session),
             req.src_ipv6_block,
             req.dst_ipv6_block,
             instance_uuid="",
@@ -33,8 +33,8 @@ def provision_daemon(session=None):
     def provision_sense_link(req, session):
         sense.provision_link(
             req.sense_link_id,
-            get_site(req.src_site, session=session).sense_uri,
-            get_site(req.dst_site, session=session).sense_uri,
+            get_site(req.src_site, attr="sense_uri", session=session),
+            get_site(req.dst_site, attr="sense_uri", session=session),
             req.src_ipv6_block,
             req.dst_ipv6_block,
             int(req.bandwidth),

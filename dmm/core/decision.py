@@ -16,9 +16,9 @@ def decision_daemon(network_graph=None, session=None):
     for req in reqs:
         if req.priority != 0:    
             if not network_graph.has_node(req.src_site):
-                network_graph.add_node(req.src_site, uplink_capacity=get_site(req.src_site, session=session).port_capacity)
+                network_graph.add_node(req.src_site, uplink_capacity=get_site(req.src_site, attr="port_capacity", session=session))
             if not network_graph.has_node(req.dst_site):
-                network_graph.add_node(req.dst_site, uplink_capacity=get_site(req.dst_site, session=session).port_capacity)
+                network_graph.add_node(req.dst_site, uplink_capacity=get_site(req.dst_site, attr="port_capacity", session=session))
             if not any(attr["request_id"] == req.request_id for u, v, attr in network_graph.edges(data=True)):
                 network_graph.add_edge(req.src_site, req.dst_site, request_id=req.request_id, priority=req.priority, bandwidth=req.bandwidth)
     
