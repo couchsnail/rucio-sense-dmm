@@ -6,17 +6,16 @@ import networkx as nx
 
 from rucio.client import Client
 
-from dmm.utils.config import config_get, config_get_int
+from dmm.utils.config import config_get_int
 
-from dmm.core.rucio import preparer_daemon, rucio_modifier_daemon, submitter_daemon, finisher_daemon
+from dmm.core.rucio import preparer_daemon, rucio_modifier_daemon, finisher_daemon
 from dmm.core.sense import stager_daemon, provision_daemon, sense_modifier_daemon, reaper_daemon
 from dmm.core.decision import decision_daemon
 from dmm.core.monit import monit_daemon
+from dmm.core.frontend import frontend
 
 class DMM:
     def __init__(self):
-        self.host = config_get("dmm", "host", default="localhost")
-        self.port = config_get_int("dmm", "port", default=5000)
         self.daemon_frequency = config_get_int("dmm", "daemon_frequency", default=60)
 
         self.network_graph = nx.MultiGraph()
@@ -52,7 +51,6 @@ class DMM:
         logging.info("Starting Daemons")
         rucio_daemons = {
             preparer_daemon: {"daemon_frequency": self.daemon_frequency, "client": self.rucio_client}, 
-            submitter_daemon: None, 
             rucio_modifier_daemon: {"client": self.rucio_client}, 
             finisher_daemon: {"client": self.rucio_client}
         }
@@ -71,3 +69,6 @@ class DMM:
             monit_daemon: None
         }
         self.fork(dmm_daemons)
+
+        logging.info("Loading Frontend")
+        frontend.run(debug=True, port=80)

@@ -14,13 +14,12 @@ def decision_daemon(network_graph=None, session=None):
     # Get all active requests
     reqs =  get_request_by_status(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED", "FINISHED", "STALE"], session=session)
     for req in reqs:
-        if req.priority != 0:    
-            if not network_graph.has_node(req.src_site):
-                network_graph.add_node(req.src_site, uplink_capacity=get_site(req.src_site, attr="port_capacity", session=session))
-            if not network_graph.has_node(req.dst_site):
-                network_graph.add_node(req.dst_site, uplink_capacity=get_site(req.dst_site, attr="port_capacity", session=session))
-            if not any(attr["request_id"] == req.request_id for u, v, attr in network_graph.edges(data=True)):
-                network_graph.add_edge(req.src_site, req.dst_site, request_id=req.request_id, priority=req.priority, bandwidth=req.bandwidth)
+        if not network_graph.has_node(req.src_site):
+            network_graph.add_node(req.src_site, uplink_capacity=get_site(req.src_site, attr="port_capacity", session=session))
+        if not network_graph.has_node(req.dst_site):
+            network_graph.add_node(req.dst_site, uplink_capacity=get_site(req.dst_site, attr="port_capacity", session=session))
+        if not any(attr["request_id"] == req.request_id for u, v, attr in network_graph.edges(data=True)):
+            network_graph.add_edge(req.src_site, req.dst_site, request_id=req.request_id, priority=req.priority, bandwidth=req.bandwidth)
     
     # update bandwidths for each endpoint
     for src, dst, key, data in network_graph.edges(data=True, keys=True):

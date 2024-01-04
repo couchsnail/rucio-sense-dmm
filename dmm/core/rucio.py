@@ -63,34 +63,19 @@ def preparer_daemon(client=None, daemon_frequency=60, session=None):
         new_request.save(session)
     logging.info("Closing Preparer Handler")
 
-def rucio_modifier_daemon():
-    pass
-
 @databased
-def submitter_daemon(session=None):
-    logging.info("Starting Submitter Handler")
-    logging.info("Closing Submitter Handler")
-    return data
+def rucio_modifier_daemon(client=None, session=None):
+    reqs = get_request_by_status(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED"], session=session)
+    for req in reqs:
+        curr_prio_in_rucio = client.get_replication_rule(req.rule_id)["priority"]
+        if req.priority != curr_prio_in_rucio:
+            mark_requests([req], "STALE", session)
 
 # updates request status in db, daemon just deregisters request
 @databased
-def finisher_daemon(session=None):
-    logging.info("Starting Finisher Handler")
-    for rule_id, finisher_reports in payload.items():
-        for rse_pair_id, report in finisher_reports.items():
-            # Get request
-            src_rse_name, dst_rse_name = rse_pair_id.split("&")
-            request_id = get_request_id(rule_id, src_rse_name, dst_rse_name)
-            req = get_request_from_id(request_id, session)
-            # Update request
-            req.update(
-                {
-                    "n_transfers_finished": req.n_transfers_finished + report["n_transfers_finished"],
-                    "n_bytes_transferred": req.n_bytes_transferred + report["n_bytes_transferred"],
-                    "external_ids": [FTSTransfer(value=ext_id) for ext_id in report["external_ids"]]
-                }
-            )
-            if req.n_transfers_finished >= req.n_transfers_total:
-                mark_requests([req], "FINISHED", session)
-                update_bandwidth(req, 1, session=session)
-    logging.info("Closing Finisher Handler")
+def finisher_daemon(client=None, session=None):
+    reqs = get_request_by_status(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED"], session=session)
+    for req in reqs:
+        curr_prio_in_rucio = client.get_replication_rule(req.rule_id)[]
+        if req.priority != curr_prio_in_rucio:
+            mark_requests([req], "STALE", session)
