@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from ipaddress import IPv6Network
 
-from dmm.utils.db import get_request_from_id, mark_requests, get_site, get_request_by_status, update_bandwidth
+from dmm.utils.db import mark_requests, get_site, get_request_by_status
 from dmm.utils.ip import get_url_from_block
 from dmm.utils.sense import get_allocation
 
@@ -76,6 +76,6 @@ def rucio_modifier_daemon(client=None, session=None):
 def finisher_daemon(client=None, session=None):
     reqs = get_request_by_status(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED"], session=session)
     for req in reqs:
-        curr_prio_in_rucio = client.get_replication_rule(req.rule_id)[]
-        if req.priority != curr_prio_in_rucio:
-            mark_requests([req], "STALE", session)
+        status = client.get_replication_rule(req.rule_id)["status"]
+        if status == "finished":
+            mark_requests([req], "FINISHED", session)

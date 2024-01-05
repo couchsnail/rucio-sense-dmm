@@ -13,6 +13,6 @@ COPY ./ /opt/dmm
 ENV PYTHONPATH=/opt/dmm/
 ENV DMM_CONFIG /opt/dmm/dmm.cfg
 
-EXPOSE 5000
+EXPOSE 80
 
 ENTRYPOINT ["bin/dmm", "--loglevel", "debug"]
