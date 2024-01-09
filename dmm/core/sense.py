@@ -47,18 +47,17 @@ def allocation_daemon(session=None):
 @databased
 def stager_daemon(session=None):
     def stage_sense_link(req, session):
-        # sense_link_id, _ = sense.stage_link(
-        #     get_site(req.src_site, attr="sense_uri", session=session),
-        #     get_site(req.dst_site, attr="sense_uri", session=session),
-        #     req.src_ipv6_block,
-        #     req.dst_ipv6_block,
-        #     instance_uuid="",
-        #     alias=req.rule_id
-        # )
-        sense_link_id = 'foo'
+        sense_link_id, _ = sense.stage_link(
+            get_site(req.src_site, attr="sense_uri", session=session),
+            get_site(req.dst_site, attr="sense_uri", session=session),
+            req.src_ipv6_block,
+            req.dst_ipv6_block,
+            instance_uuid="",
+            alias=req.rule_id
+        )
         req.update({"sense_link_id": sense_link_id})
-        # modify_link_config(req, max_active=50, min_active=50)
-        # modify_se_config(req, max_inbound=50, max_outbound=50)
+        modify_link_config(req, max_active=50, min_active=50)
+        modify_se_config(req, max_inbound=50, max_outbound=50)
         mark_requests([req], "STAGED", session)
     reqs_init = [req for req in get_request_by_status(status=["ALLOCATED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
@@ -68,17 +67,17 @@ def stager_daemon(session=None):
 @databased
 def provision_daemon(session=None):
     def provision_sense_link(req, session):
-        # sense.provision_link(
-        #     req.sense_link_id,
-        #     get_site(req.src_site, attr="sense_uri", session=session),
-        #     get_site(req.dst_site, attr="sense_uri", session=session),
-        #     req.src_ipv6_block,
-        #     req.dst_ipv6_block,
-        #     int(req.bandwidth),
-        #     alias=req.rule_id
-        # )
-        # modify_link_config(req, max_active=500, min_active=500)
-        # modify_se_config(req, max_inbound=500, max_outbound=500)
+        sense.provision_link(
+            req.sense_link_id,
+            get_site(req.src_site, attr="sense_uri", session=session),
+            get_site(req.dst_site, attr="sense_uri", session=session),
+            req.src_ipv6_block,
+            req.dst_ipv6_block,
+            int(req.bandwidth),
+            alias=req.rule_id
+        )
+        modify_link_config(req, max_active=500, min_active=500)
+        modify_se_config(req, max_inbound=500, max_outbound=500)
         mark_requests([req], "PROVISIONED", session)
     reqs_decided = [req for req in get_request_by_status(status=["DECIDED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
@@ -88,11 +87,11 @@ def provision_daemon(session=None):
 @databased
 def sense_modifier_daemon(session=None):
     def modify_sense_link(req):
-        # sense.modify_link(
-        #     req.sense_link_id,
-        #     int(req.bandwidth),
-        #     alias=req.rule_id
-        # )
+        sense.modify_link(
+            req.sense_link_id,
+            int(req.bandwidth),
+            alias=req.rule_id
+        )
         pass
     reqs_stale = [req for req in get_request_by_status(status=["STALE"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
