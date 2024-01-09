@@ -17,7 +17,7 @@ spec:
       - name: dmm
         image: aaarora/dmm:latest
         ports:
-        - containerPort: 5000
+        - containerPort: 80
         volumeMounts:
         - name: dmm-config
           mountPath: /opt/dmm/dmm.cfg

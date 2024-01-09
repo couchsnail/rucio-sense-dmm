@@ -15,7 +15,8 @@ def get_site(site_name, attr=None, session=None):
 
 def get_request_from_id(rule_id, session=None):
     try:
-        return session.query(Request).filter(Request.rule_id == rule_id).first()
+        req = session.query(Request).filter(Request.rule_id == rule_id).first()
+        return req if req else None
     except Exception as e:
         logging.error(f"Error getting request from id: {e}")
         raise
@@ -33,7 +34,7 @@ def mark_requests(reqs, status, session=None):
             req.update({
                 "transfer_status": status
             })
-            logging.debug(f"Marked {req.request_id} as {status}")
+            logging.debug(f"Marked {req.rule_id} as {status}")
     except Exception as e:
         logging.error(f"Error marking requests: {e}")
         raise
@@ -43,7 +44,7 @@ def update_bandwidth(req, bandwidth, session=None):
         req.update({
             "bandwidth": bandwidth
         })
-        logging.debug(f"Updated bandwidth to {bandwidth} for {req.request_id}")
+        logging.debug(f"Updated bandwidth to {bandwidth} for {req.rule_id}")
     except Exception as e:
         logging.error(f"Error updating bandwidth: {e}")
         raise

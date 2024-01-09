@@ -12,6 +12,6 @@ def get_free_ipv6(sitename, alloc_name):
         # raise ValueError(ex)
 
 a = get_free_ipv6("T2_US_SDSC", "RUCIO_SENSE")
-a = get_free_ipv6("T1_US_FNAL", "RUCIO_SENSE")
+a = get_free_ipv6("T2_US_Caltech_Test", "RUCIO_SENSE")
 # a = get_free_ipv6("T2_US_Caltech_Test", "RULEID1_T2_US_Caltech_Test")
 print(a)

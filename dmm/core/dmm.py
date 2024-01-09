@@ -9,7 +9,7 @@ from rucio.client import Client
 from dmm.utils.config import config_get, config_get_int
 
 from dmm.core.rucio import preparer_daemon, rucio_modifier_daemon, finisher_daemon
-from dmm.core.sense import stager_daemon, provision_daemon, sense_modifier_daemon, reaper_daemon
+from dmm.core.sense import allocation_daemon, stager_daemon, provision_daemon, sense_modifier_daemon, reaper_daemon
 from dmm.core.decision import decision_daemon
 from dmm.core.monit import monit_daemon
 from dmm.core.frontend import handle_client
@@ -59,6 +59,7 @@ class DMM:
         self.fork(rucio_daemons)
         
         sense_daemons = {
+            allocation_daemon: None,
             stager_daemon: None, 
             provision_daemon: None, 
             sense_modifier_daemon: None,
@@ -86,6 +87,6 @@ class DMM:
                 logging.info("Waiting for the next connection")
                 connection, address = listener.accept()
                 client_thread = Process(target=handle_client, 
-                                        args=(self.lock, connection, address), 
-                                        name="HANDLER")
+                                    args=(self.lock, connection, address)
+                                )
                 client_thread.start()

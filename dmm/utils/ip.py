@@ -7,10 +7,7 @@ from dmm.utils.db import get_site
 def get_url_from_block(site, ipv6_block, session=None):
     cert = config_get("dmm", "siterm_cert")
     key = config_get("dmm", "siterm_key")
-    try:
-        site_ = get_site(site, session)
-    except:
-        raise LookupError("Error getting site from database")
+    site_ = get_site(site, session=session)
     try:
         url = str(site_.query_url) + "/MAIN/sitefe/json/frontend/configuration"
         data = requests.get(url, cert=(cert, key), verify=False).json()
