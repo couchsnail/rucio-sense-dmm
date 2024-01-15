@@ -13,7 +13,6 @@ from dmm.db.session import databased
 def allocation_daemon(session=None):
         reqs_init = [req_init for req_init in get_request_by_status(status=["INIT"], session=session)]
         reqs_finished = [req_fin for req_fin in get_request_by_status(status=["FINISHED"], session=session)]
-
         for new_request in reqs_init:
             for req_fin in reqs_finished:
                 if (req_fin.src_site == new_request.src_site and req_fin.dst_site == new_request.dst_site):
@@ -25,24 +24,26 @@ def allocation_daemon(session=None):
                         "transfer_status": "ALLOCATED"
                     })
                     mark_requests([req_fin], "DELETED", session)
-                    return
+                    reqs_finished.remove(req_fin)
+                    break
 
-            src_ip_block = sense.get_allocation(new_request.src_site, "RUCIO_SENSE")
-            dst_ip_block = sense.get_allocation(new_request.dst_site, "RUCIO_SENSE")
+            else:
+                src_ip_block = sense.get_allocation(new_request.src_site, "RUCIO_SENSE")
+                dst_ip_block = sense.get_allocation(new_request.dst_site, "RUCIO_SENSE")
 
-            src_ip_block = str(IPv6Network(src_ip_block))
-            dst_ip_block = str(IPv6Network(dst_ip_block))
+                src_ip_block = str(IPv6Network(src_ip_block))
+                dst_ip_block = str(IPv6Network(dst_ip_block))
 
-            src_url = get_url_from_block(new_request.src_site, src_ip_block, session)
-            dst_url = get_url_from_block(new_request.dst_site, dst_ip_block, session)
+                src_url = get_url_from_block(new_request.src_site, src_ip_block, session)
+                dst_url = get_url_from_block(new_request.dst_site, dst_ip_block, session)
 
-            new_request.update({
-                "src_ipv6_block": src_ip_block,
-                "dst_ipv6_block": dst_ip_block,
-                "src_url": src_url,
-                "dst_url": dst_url,
-                "transfer_status": "ALLOCATED"
-            })
+                new_request.update({
+                    "src_ipv6_block": src_ip_block,
+                    "dst_ipv6_block": dst_ip_block,
+                    "src_url": src_url,
+                    "dst_url": dst_url,
+                    "transfer_status": "ALLOCATED"
+                })
 
 @databased
 def stager_daemon(session=None):
