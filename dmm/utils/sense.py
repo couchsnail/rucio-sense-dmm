@@ -79,6 +79,46 @@ def free_allocation(sitename, alloc_name):
         logging.error(f"Error occurred in free_allocation: {str(e)}")
         raise ValueError(f"Freeing allocation failed for {sitename} and {alloc_name}")
     
+def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias=""):
+    try:
+        logging.info(f"staging sense link for request {alias}")
+        workflow_api = WorkflowCombinedApi()
+        workflow_api.instance_new() if instance_uuid == "" else setattr(workflow_api, "si_uuid", instance_uuid)
+        vlan_tag = config_get("sense", "vlan_tag", default="Any")
+        intent = {
+            "service_profile_uuid": get_profile_uuid(),
+            "queries": [
+                {
+                    "ask": "edit",
+                    "options": [
+                        {"data.connections[0].terminals[0].uri": src_uri},
+                        {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
+                        {"data.connections[0].terminals[1].uri": dst_uri},
+                        {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                        {"data.connections[0].terminals[0].vlan_tag": vlan_tag}, 
+                        {"data.connections[0].terminals[1].vlan_tag": vlan_tag}
+                    ]
+                },
+                {"ask": "maximum-bandwidth", "options": [{"name": "Connection 1"}]}
+            ]
+        }
+        if alias:
+            intent["alias"] = alias
+        response = workflow_api.instance_create(json.dumps(intent))
+        if not good_response(response):
+            raise ValueError(f"SENSE query failed for {instance_uuid}")
+        response = json.loads(response)
+        logging.debug(f"Staging returned response {response}")
+        for query in response["queries"]:
+            if query["asked"] == "maximum-bandwidth":
+                result = query["results"][0]
+                if "bandwidth" not in result:
+                    raise ValueError(f"SENSE query failed for {instance_uuid}")
+                return response["service_uuid"], float(result["bandwidth"])
+    except Exception as e:
+        logging.error(f"Error occurred in staging link: {str(e)}")
+        raise ValueError("staging link failed")
+
 def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, alias=""):
     try:
         logging.info(f"provisioning sense link for request {alias} with bandwidth {bandwidth / 1000} G")
