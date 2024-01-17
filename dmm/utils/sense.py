@@ -144,9 +144,10 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
         }
         if alias:
             intent["alias"] = alias
-        response = workflow_api.workflow_combined_intent_post(intent)
+        response = workflow_api.instance_create(json.dumps(intent))
         if not good_response(response):
             raise ValueError(f"SENSE query failed for {instance_uuid}")
+        workflow_api.instance_operate("provision", sync="true")
         return response
     except Exception as e:
         logging.error(f"Error occurred in provision_link: {str(e)}")

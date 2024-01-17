@@ -19,7 +19,7 @@ def handle_client(lock, connection, address, session=None):
             logging.debug(f"Rucio request for rule_id: {rule_id}")
             req = get_request_from_id(rule_id, session=session)
             if req:
-                result = json.dumps({"source": req.src_url, "destination": req.dst_url})
+                result = json.dumps({"source": req.src_url.split(":")[0], "destination": req.dst_url.split(":")[0]})
                 connection.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n" + result.encode())
             else:
                 connection.sendall(b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n")
