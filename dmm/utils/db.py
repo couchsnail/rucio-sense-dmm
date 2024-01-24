@@ -1,6 +1,6 @@
 import logging
 
-from dmm.db.models import Request, Site
+from dmm.db.models import Request, Site, Endpoint
 
 def get_site(site_name, attr=None, session=None):
     try:
@@ -12,6 +12,13 @@ def get_site(site_name, attr=None, session=None):
     except Exception as e:
         logging.error(f"Error getting site: {e}")
         raise
+
+def get_unused_endpoint(site, session=None):
+    endpoint = session.query(Endpoint).filter(Endpoint.site == site, Endpoint.in_use == False).first()
+    endpoint.update({
+        "in_use": True
+    })
+    return endpoint
 
 def get_request_from_id(rule_id, session=None):
     try:

@@ -1,30 +1,42 @@
+from flask import Flask, request, Response
 import logging
+import time
 import json
 
-import socket
 from dmm.db.session import databased
 from dmm.utils.db import get_request_from_id
 
-@databased        
-def handle_client(lock, connection, address, session=None):
-    try:
-        logging.info(f"Connection accepted from {address}")
-        rule_id = connection.recv(8192).decode()
-        if not rule_id:
-            return
-        if not rule_id.startswith("GET /query/"):
-            return
-        with lock:
-            rule_id = rule_id.split("/query/")[1].split(" ")[0]
-            logging.debug(f"Rucio request for rule_id: {rule_id}")
+frontend_app = Flask(__name__)
+
+@frontend_app.route('/query/<rule_id>', methods=['GET'])
+@databased
+def handle_client(rule_id, session=None):
+    start_time = time.time()
+    retry_interval = 5
+    retry_timeout = 60
+    logging.info(f"Received request for rule_id: {rule_id}")
+    while True:
+        try:
             req = get_request_from_id(rule_id, session=session)
-            if req:
-                result = json.dumps({"source": req.src_url.split(":")[0], "destination": req.dst_url.split(":")[0]})
-                connection.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n" + result.encode())
+            if req and req.src_url and req.dst_url:
+                result = json.dumps({"source": req.src_url, "destination": req.dst_url})
+                response = Response(result, content_type='application/json')
+                response.headers.add('Content-Type', 'application/json')
+                return response
+            elif req:
+                current_time = time.time()
+                if current_time - start_time > retry_timeout:
+                    response = Response("", status=404)
+                    response.headers.add('Content-Type', 'text/plain')
+                    return response
+                else:
+                    time.sleep(retry_interval)
             else:
-                connection.sendall(b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n")
-    except Exception as e:
-        logging.error(f"Error processing client {address}: {str(e)}")
-    finally:
-        connection.shutdown(socket.SHUT_RDWR)
-        connection.close()
+                response = Response("", status=404)
+                response.headers.add('Content-Type', 'text/plain')
+                return response
+        except Exception as e:
+            logging.error(f"Error processing client request: {str(e)}")
+            response = Response("", status=500)
+            response.headers.add('Content-Type', 'text/plain')
+            return response

@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from datetime import datetime
 
@@ -58,14 +57,10 @@ class Request(BASE, ModelBase):
 
     def __init__(self, **kwargs):
         super(Request, self).__init__(**kwargs)
-        self.n_transfers_submitted = 0
-        self.n_bytes_transferred = 0
-        self.n_transfers_finished = 0
 
 class Site(BASE, ModelBase):
     __tablename__ = "sites"
-    id = Column(Integer(), autoincrement=True, primary_key=True)
-    name = Column(String(255))
+    name = Column(String(255), primary_key=True)
     sense_uri = Column(String(255))
     port_capacity = Column(Integer())
     query_url = Column(String(255))
@@ -79,9 +74,23 @@ class Site(BASE, ModelBase):
         for port in site_info["peer_points"]:
             if vlan_tag.split("-")[0] in port["port_vlan_pool"].split(","):
                 self.port_capacity = port["port_capacity"]
+        if not self.port_capacity:
+            self.port_capacity = site_info["peer_points"][0]["port_capacity"]
         self.query_url = site_info["domain_url"]
+
+class Endpoint(BASE, ModelBase):
+    __tablename__ = "endpoints"
+    id = Column(Integer(), autoincrement=True, primary_key=True)
+    site = Column(String(255))
+    ip_block = Column(String(255))
+    hostname = Column(String(255))
+    in_use = Column(Boolean())
+
+    def __init__(self, **kwargs):
+        super(Endpoint, self).__init__(**kwargs)
 
 # Create the tables if don't exist when module first imported.
 engine=get_engine()
 Request.__table__.create(bind=engine, checkfirst=True)
 Site.__table__.create(bind=engine, checkfirst=True)
+Endpoint.__table__.create(bind=engine, checkfirst=True)

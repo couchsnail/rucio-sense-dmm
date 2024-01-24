@@ -2,7 +2,7 @@ from dmm.db.session import databased
 from dmm.utils.db import get_request_by_status, mark_requests, update_bandwidth, get_site
 
 @databased
-def decision_daemon(network_graph=None, session=None):
+def decider(network_graph=None, session=None):
     # Remove deleted requests from graph
     reqs_deleted = get_request_by_status(status=["DELETED"], session=session)
     for req_del in reqs_deleted:

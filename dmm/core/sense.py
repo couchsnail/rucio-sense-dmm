@@ -1,52 +1,45 @@
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
-from ipaddress import IPv6Network
 
 from dmm.utils.db import get_request_by_status, mark_requests, get_site
-from dmm.utils.ip import get_url_from_block
+from dmm.utils.db import get_unused_endpoint
 from dmm.utils.fts import modify_link_config, modify_se_config
 import dmm.utils.sense as sense
 
 from dmm.db.session import databased
 
 @databased
-def allocation_daemon(session=None):
-        reqs_init = [req_init for req_init in get_request_by_status(status=["INIT"], session=session)]
-        reqs_finished = [req_fin for req_fin in get_request_by_status(status=["FINISHED"], session=session)]
-        for new_request in reqs_init:
-            for req_fin in reqs_finished:
-                if (req_fin.src_site == new_request.src_site and req_fin.dst_site == new_request.dst_site):
-                    new_request.update({
-                        "src_ipv6_block": req_fin.src_ipv6_block,
-                        "dst_ipv6_block": req_fin.dst_ipv6_block,
-                        "src_url": req_fin.src_url,
-                        "dst_url": req_fin.dst_url,
-                        "transfer_status": "ALLOCATED"
-                    })
-                    mark_requests([req_fin], "DELETED", session)
-                    reqs_finished.remove(req_fin)
-                    break
-
-            else:
-                src_ip_block = sense.get_allocation(new_request.src_site, "RUCIO_SENSE")
-                dst_ip_block = sense.get_allocation(new_request.dst_site, "RUCIO_SENSE")
-
-                src_ip_block = str(IPv6Network(src_ip_block))
-                dst_ip_block = str(IPv6Network(dst_ip_block))
-
-                src_url = get_url_from_block(new_request.src_site, src_ip_block, session)
-                dst_url = get_url_from_block(new_request.dst_site, dst_ip_block, session)
-
+def allocator(session=None):
+    reqs_init = [req_init for req_init in get_request_by_status(status=["INIT"], session=session)]
+    reqs_finished = [req_fin for req_fin in get_request_by_status(status=["FINISHED"], session=session)]
+    for new_request in reqs_init:
+        for req_fin in reqs_finished:
+            if (req_fin.src_site == new_request.src_site and req_fin.dst_site == new_request.dst_site):
                 new_request.update({
-                    "src_ipv6_block": src_ip_block,
-                    "dst_ipv6_block": dst_ip_block,
-                    "src_url": src_url,
-                    "dst_url": dst_url,
+                    "src_ipv6_block": req_fin.src_ipv6_block,
+                    "dst_ipv6_block": req_fin.dst_ipv6_block,
+                    "src_url": req_fin.src_url,
+                    "dst_url": req_fin.dst_url,
                     "transfer_status": "ALLOCATED"
                 })
+                mark_requests([req_fin], "DELETED", session)
+                reqs_finished.remove(req_fin)
+                break
+
+        else:
+            src_endpoint = get_unused_endpoint(new_request.src_site, session=session)
+            dst_endpoint = get_unused_endpoint(new_request.dst_site, session=session)
+
+            new_request.update({
+                "src_ipv6_block": src_endpoint.ip_block,
+                "dst_ipv6_block": dst_endpoint.ip_block,
+                "src_url": src_endpoint.hostname,
+                "dst_url": dst_endpoint.hostname,
+                "transfer_status": "ALLOCATED"
+            })
 
 @databased
-def stager_daemon(session=None):
+def stager(session=None):
     def stage_sense_link(req, session):
         sense_link_id, _ = sense.stage_link(
             get_site(req.src_site, attr="sense_uri", session=session),
@@ -66,7 +59,7 @@ def stager_daemon(session=None):
             executor.submit(stage_sense_link, req, session)
     
 @databased
-def provision_daemon(session=None):
+def provision(session=None):
     def provision_sense_link(req, session):
         sense.provision_link(
             req.sense_link_id,
@@ -86,7 +79,7 @@ def provision_daemon(session=None):
             executor.submit(provision_sense_link, req, session)
 
 @databased
-def sense_modifier_daemon(session=None):
+def sense_modifier(session=None):
     def modify_sense_link(req):
         sense.modify_link(
             req.sense_link_id,
@@ -101,7 +94,7 @@ def sense_modifier_daemon(session=None):
             mark_requests([req], "PROVISIONED", session)
 
 @databased
-def reaper_daemon(session=None):
+def reaper(session=None):
     reqs_finished = [req for req in get_request_by_status(status=["FINISHED"], session=session)]
     for req in reqs_finished:
         if (datetime.utcnow() - req.updated_at).seconds > 600:

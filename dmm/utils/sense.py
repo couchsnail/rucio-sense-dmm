@@ -84,7 +84,7 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
         logging.info(f"staging sense link for request {alias}")
         workflow_api = WorkflowCombinedApi()
         workflow_api.instance_new() if instance_uuid == "" else setattr(workflow_api, "si_uuid", instance_uuid)
-        vlan_tag = config_get("sense", "vlan_tag", default="Any")
+        vlan_tag = config_get("sense", "vlan_tag", default="any")
         intent = {
             "service_profile_uuid": get_profile_uuid(),
             "queries": [
@@ -124,7 +124,7 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
         logging.info(f"provisioning sense link for request {alias} with bandwidth {bandwidth / 1000} G")
         workflow_api = WorkflowCombinedApi()
         workflow_api.si_uuid = instance_uuid
-        vlan_tag = config_get("sense", "vlan_tag", default="Any")
+        vlan_tag = config_get("sense", "vlan_tag", default="any")
         intent = {
             "service_profile_uuid": get_profile_uuid(),
             "queries": [

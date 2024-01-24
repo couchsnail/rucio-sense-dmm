@@ -1,6 +1,5 @@
 from time import sleep
 import logging
-import socket
 from multiprocessing import Process, Lock
 import networkx as nx
 
@@ -8,17 +7,19 @@ from rucio.client import Client
 
 from dmm.utils.config import config_get, config_get_int
 
-from dmm.core.rucio import preparer_daemon, rucio_modifier_daemon, finisher_daemon
-from dmm.core.sense import allocation_daemon, stager_daemon, provision_daemon, sense_modifier_daemon, reaper_daemon
-from dmm.core.decision import decision_daemon
-from dmm.core.monit import monit_daemon
-from dmm.core.frontend import handle_client
+from dmm.core.rucio import preparer, rucio_modifier, finisher
+from dmm.core.sense import allocator, stager, provision, sense_modifier, reaper
+from dmm.core.decision import decider
+from dmm.core.monit import monit
+from dmm.core.frontend import frontend_app
 
 class DMM:
     def __init__(self):
         self.host = config_get("dmm", "host", default="localhost")
         self.port = config_get_int("dmm", "port", default=80)
         self.daemon_frequency = config_get_int("dmm", "daemon_frequency", default=60)
+        self.cert = config_get("dmm", "cert")
+        self.key = config_get("dmm", "key")
 
         self.network_graph = nx.MultiGraph()
         self.rucio_client = Client()
@@ -52,41 +53,25 @@ class DMM:
     def start(self):
         logging.info("Starting Daemons")
         rucio_daemons = {
-            preparer_daemon: {"daemon_frequency": self.daemon_frequency, "client": self.rucio_client}, 
-            rucio_modifier_daemon: {"client": self.rucio_client}, 
-            finisher_daemon: {"client": self.rucio_client}
+            preparer: {"daemon_frequency": self.daemon_frequency, "client": self.rucio_client, "certs": (self.cert, self.key)}, 
+            rucio_modifier: {"client": self.rucio_client}, 
+            finisher: {"client": self.rucio_client}
         }
         self.fork(rucio_daemons)
         
         sense_daemons = {
-            allocation_daemon: None,
-            stager_daemon: None, 
-            provision_daemon: None, 
-            sense_modifier_daemon: None,
-            reaper_daemon: None
+            allocator: None,
+            stager: None, 
+            provision: None, 
+            sense_modifier: None,
+            reaper: None
         }
         self.fork(sense_daemons)
         
         dmm_daemons = {
-            decision_daemon: {"network_graph": self.network_graph},
-            monit_daemon: None
+            decider: {"network_graph": self.network_graph},
+            monit: None
         }
         self.fork(dmm_daemons)
 
-        logging.info("Loading Frontend")
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
-            
-            ### only required for testing purposes
-            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            ###
-
-            listener.bind((self.host, self.port))
-            listener.listen(1)
-            logging.info(f"Listening on {self.host}:{self.port}")
-            while True:
-                logging.info("Waiting for the next connection")
-                connection, address = listener.accept()
-                client_thread = Process(target=handle_client, 
-                                    args=(self.lock, connection, address)
-                                )
-                client_thread.start()
+        frontend_app.run(port=80, host='0.0.0.0') 

@@ -77,5 +77,5 @@ def fts_submit_job_query(job_id):
     timestamps = fts_get_val_from_response(response)
     return timestamps
 
-def monit_daemon():
+def monit():
     pass
