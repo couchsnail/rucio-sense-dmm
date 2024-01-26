@@ -1,7 +1,7 @@
 from datetime import datetime
 import requests
-from dmm.utils.db import mark_requests, get_site, get_request_by_status
 
+from dmm.utils.db import mark_requests, get_request_by_status, get_site
 from dmm.db.models import Request, Site, Endpoint
 from dmm.db.session import databased
 

@@ -76,6 +76,3 @@ def fts_submit_job_query(job_id):
     response = requests.get(query_addr, data=data_string, headers=headers).json()
     timestamps = fts_get_val_from_response(response)
     return timestamps
-
-def monit():
-    pass
