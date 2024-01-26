@@ -11,8 +11,8 @@ from dmm.utils.orchestrator import fork
 from dmm.daemons.rucio import preparer, rucio_modifier, finisher
 from dmm.daemons.sense import stager, provision, sense_modifier, reaper
 from dmm.daemons.core import decider
-from dmm.daemons.allocation import allocator
-from dmm.daemons.frontend import frontend_app
+from dmm.daemons.core import allocator
+from dmm.frontend.frontend import frontend_app
 
 class DMM:
     def __init__(self):
@@ -24,7 +24,7 @@ class DMM:
         self.rucio_daemon_frequency = config_get_int("daemons", "rucio", default=60)
         self.dmm_daemon_frequency = config_get_int("daemons", "dmm", default=60)
         self.sense_daemon_frequency = config_get_int("daemons", "sense", default=60)
-        self.utils_daemon_frequency = config_get_int("daemons", "utils", default=7200)
+        self.renewwe_daemon_frequency = config_get_int("daemons", "renewer", default=7200)
 
         self.network_graph = nx.MultiGraph()
         self.rucio_client = Client()
@@ -33,7 +33,7 @@ class DMM:
     def start(self):
         logging.info("Starting Daemons")
         rucio_daemons = {
-            preparer: {"daemon_frequency": self.rucio_daemon_frequency, "client": self.rucio_client, "certs": (self.cert, self.key)}, 
+            preparer: {"client": self.rucio_client}, 
             rucio_modifier: {"client": self.rucio_client}, 
             finisher: {"client": self.rucio_client}
         }
@@ -49,7 +49,7 @@ class DMM:
         
         dmm_daemons = {
             decider: {"network_graph": self.network_graph},
-            allocator: None
+            allocator: {"certs": (self.cert, self.key)}
         }
         fork(self.dmm_daemon_frequency, self.lock, dmm_daemons)
 

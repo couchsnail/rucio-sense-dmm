@@ -1,5 +1,5 @@
 from dmm.db.session import databased
-from dmm.utils.db import get_request_by_status, mark_requests, update_bandwidth, get_site
+from dmm.utils.db import get_request_by_status, mark_requests, update_bandwidth, get_site, get_unused_endpoint, update_site
 
 @databased
 def decider(network_graph=None, session=None):
@@ -12,7 +12,7 @@ def decider(network_graph=None, session=None):
                 break
 
     # Get all active requests
-    reqs =  get_request_by_status(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED", "FINISHED", "STALE"], session=session)
+    reqs =  get_request_by_status(status=["ALLOCATED", "MODIFIED", "STAGED", "DECIDED", "PROVISIONED", "FINISHED", "STALE"], session=session)
     for req in reqs:
         if not network_graph.has_node(req.src_site):
             network_graph.add_node(req.src_site, uplink_capacity=get_site(req.src_site, attr="port_capacity", session=session))
@@ -58,6 +58,16 @@ def decider(network_graph=None, session=None):
         update_bandwidth(req, allocated_bandwidth, session=session)
         mark_requests([req], "DECIDED", session)
 
+    # for prio modified reqs, allocate new bandwidth, mark as STALE
+    reqs_modified = [req for req in get_request_by_status(status=["MODIFIED"], session=session)]
+    for req in reqs_modified:
+        for _, _, key, data in network_graph.edges(keys=True, data=True):
+            if "rule_id" in data and data["rule_id"] == req.rule_id:
+                allocated_bandwidth = int(data["bandwidth"])
+        if allocated_bandwidth != req.bandwidth:
+            update_bandwidth(req, allocated_bandwidth, session=session)
+            mark_requests([req], "STALE", session)
+
     # for already provisioned reqs, modify bandwidth and mark as stale
     reqs_provisioned = [req for req in get_request_by_status(status=["PROVISIONED"], session=session)]
     for req in reqs_provisioned:
@@ -67,3 +77,33 @@ def decider(network_graph=None, session=None):
         if allocated_bandwidth != req.bandwidth:
             update_bandwidth(req, allocated_bandwidth, session=session)
             mark_requests([req], "STALE", session)
+
+@databased
+def allocator(certs=None, session=None):
+    reqs_init = [req_init for req_init in get_request_by_status(status=["INIT"], session=session)]
+    reqs_finished = [req_fin for req_fin in get_request_by_status(status=["FINISHED"], session=session)]
+    for new_request in reqs_init:
+        update_site(new_request.src_site, certs=certs, session=session)
+        update_site(new_request.dst_site, certs=certs, session=session)
+        for req_fin in reqs_finished:
+            if (req_fin.src_site == new_request.src_site and req_fin.dst_site == new_request.dst_site):
+                new_request.update({
+                    "src_ipv6_block": req_fin.src_ipv6_block,
+                    "dst_ipv6_block": req_fin.dst_ipv6_block,
+                    "src_url": req_fin.src_url,
+                    "dst_url": req_fin.dst_url,
+                    "transfer_status": "ALLOCATED"
+                })
+                mark_requests([req_fin], "DELETED", session)
+                reqs_finished.remove(req_fin)
+                break
+        else:
+            src_endpoint = get_unused_endpoint(new_request.src_site, session=session)
+            dst_endpoint = get_unused_endpoint(new_request.dst_site, session=session)
+            new_request.update({
+                "src_ipv6_block": src_endpoint.ip_block,
+                "dst_ipv6_block": dst_endpoint.ip_block,
+                "src_url": src_endpoint.hostname,
+                "dst_url": dst_endpoint.hostname,
+                "transfer_status": "ALLOCATED"
+            })

@@ -1,5 +1,4 @@
 from flask import Flask, Response, render_template
-import sqlite3
 import logging
 import time
 import json
@@ -7,7 +6,7 @@ import json
 from dmm.db.session import databased
 from dmm.utils.db import get_request_from_id, get_request_by_status
 
-frontend_app = Flask(__name__)
+frontend_app = Flask(__name__, template_folder="/opt/dmm/dmm/frontend/")
 
 @frontend_app.route("/query/<rule_id>", methods=["GET"])
 @databased
@@ -45,5 +44,8 @@ def handle_client(rule_id, session=None):
 @frontend_app.route("/status", methods=["GET", "POST"])
 @databased
 def get_dmm_status(session=None):
-    data = None
-    render_template("../ui/index.html", data=data)
+    data = get_request_by_status("any", session=session)
+    try:
+        render_template("index.html", data=data)
+    except:
+        return "No requests found in DMM\n"

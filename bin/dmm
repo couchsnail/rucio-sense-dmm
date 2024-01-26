@@ -4,7 +4,7 @@ import sys
 import signal
 import logging
 
-from dmm.core.dmm import DMM
+from dmm.dmm import DMM
 
 def sigint_handler(dmm):
     def actual_handler(sig, frame):
