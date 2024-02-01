@@ -4,9 +4,9 @@ import time
 import json
 
 from dmm.db.session import databased
-from dmm.utils.db import get_request_from_id, get_request_by_status
+from dmm.utils.db import get_request_from_id, get_request_cursor
 
-frontend_app = Flask(__name__, template_folder="/opt/dmm/dmm/frontend/")
+frontend_app = Flask(__name__)
 
 @frontend_app.route("/query/<rule_id>", methods=["GET"])
 @databased
@@ -44,8 +44,11 @@ def handle_client(rule_id, session=None):
 @frontend_app.route("/status", methods=["GET", "POST"])
 @databased
 def get_dmm_status(session=None):
-    data = get_request_by_status("any", session=session)
+    cursor = get_request_cursor(session=session)
+    data = cursor.fetchall() 
+    print(data)
     try:
-        render_template("index.html", data=data)
-    except:
+        return render_template("index.html", data=data)
+    except Exception as e:
+        print(e)
         return "No requests found in DMM\n"

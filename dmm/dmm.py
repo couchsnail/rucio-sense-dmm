@@ -12,11 +12,12 @@ from dmm.daemons.rucio import preparer, rucio_modifier, finisher
 from dmm.daemons.sense import stager, provision, sense_modifier, reaper
 from dmm.daemons.core import decider
 from dmm.daemons.core import allocator
+from dmm.daemons.sites import refresh_site_db
 from dmm.frontend.frontend import frontend_app
 
 class DMM:
     def __init__(self):
-        self.host = config_get("dmm", "host", default="localhost")
+        self.host = "localhost" #config_get("dmm", "host", default="localhost")
         self.port = config_get_int("dmm", "port", default=80)
         self.cert = config_get("dmm", "cert")
         self.key = config_get("dmm", "key")
@@ -24,7 +25,7 @@ class DMM:
         self.rucio_daemon_frequency = config_get_int("daemons", "rucio", default=60)
         self.dmm_daemon_frequency = config_get_int("daemons", "dmm", default=60)
         self.sense_daemon_frequency = config_get_int("daemons", "sense", default=60)
-        self.renewwe_daemon_frequency = config_get_int("daemons", "renewer", default=7200)
+        self.database_builder_daemon_frequency = config_get_int("daemons", "db", default=7200)
 
         self.network_graph = nx.MultiGraph()
         self.rucio_client = Client()
@@ -32,6 +33,11 @@ class DMM:
 
     def start(self):
         logging.info("Starting Daemons")
+        database_builder_daemons = {
+            refresh_site_db: {"certs": (self.cert, self.key)}
+        }
+        fork(self.database_builder_daemon_frequency, self.lock, database_builder_daemons)
+
         rucio_daemons = {
             preparer: {"client": self.rucio_client}, 
             rucio_modifier: {"client": self.rucio_client}, 
@@ -49,8 +55,8 @@ class DMM:
         
         dmm_daemons = {
             decider: {"network_graph": self.network_graph},
-            allocator: {"certs": (self.cert, self.key)}
+            allocator: None,
         }
         fork(self.dmm_daemon_frequency, self.lock, dmm_daemons)
 
-        serve(frontend_app, port=80, host=self.host)
+        serve(frontend_app, port=8080, host=self.host)

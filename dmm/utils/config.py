@@ -7,7 +7,6 @@ __CONFIG = None
 class Config:
     def __init__(self):
         self.parser = ConfigParser.ConfigParser()
-
         try:
             if "DMM_CONFIG" in os.environ:
                 logging.debug("reading config defined in env")
@@ -47,7 +46,7 @@ def config_get(section, option, default=None, extract_function=ConfigParser.Conf
 def config_get_bool(section, option, default=None):
     try:
         return bool(config_get(section, option, extract_function=ConfigParser.ConfigParser.getboolean))
-    except ValueError:
+    except:
         if default is not None:
             return default
         else:
@@ -57,7 +56,7 @@ def config_get_bool(section, option, default=None):
 def config_get_int(section, option, default=None):
     try:
         return int(config_get(section, option, extract_function=ConfigParser.ConfigParser.getint))
-    except ValueError:
+    except:
         if default is not None:
             return default
         else:

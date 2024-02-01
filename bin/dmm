@@ -37,7 +37,7 @@ if __name__ == "__main__":
     )
 
     # Start DMM
+    logging.info("Starting DMM")
     dmm = DMM()
     signal.signal(signal.SIGINT, sigint_handler(dmm))
-    logging.info("Starting DMM")
     dmm.start()

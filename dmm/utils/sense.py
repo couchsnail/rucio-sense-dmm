@@ -3,12 +3,21 @@ import re
 
 import logging
 from time import sleep
+import requests
 
 from dmm.utils.config import config_get
 
 from sense.client.workflow_combined_api import WorkflowCombinedApi
 from sense.client.discover_api import DiscoverApi
 from sense.client.address_api import AddressApi
+
+# Testing Hack
+VLAN_MAP = {
+        "urn:ogf:network:fnal.gov:2023" + "-" + "urn:ogf:network:ultralight.org:2013" : "3610-3612",
+        "urn:ogf:network:ultralight.org:2013" + "-" + "urn:ogf:network:fnal.gov:2023" : "3610-3612",
+        "urn:ogf:network:nrp-nautilus.io:2020" + "-" + "urn:ogf:network:ultralight.org:2013" : "3985-3989",
+        "urn:ogf:network:ultralight.org:2013" + "-" + "urn:ogf:network:nrp-nautilus.io:2020" : "3985-3989"
+        }
 
 PROFILE_UUID = ""
 
@@ -57,6 +66,11 @@ def get_site_info(rse_name):
         logging.error(f"Error occurred in get_site_info: {str(e)}")
         raise ValueError(f"Getting site info failed for {rse_name}")
 
+def get_siterm_list_of_endpoints(site, certs):
+    url = str(site.query_url) + "/MAIN/sitefe/json/frontend/configuration"
+    data = requests.get(url, cert=certs, verify=False).json()
+    return data[site.name]["metadata"]["xrootd"].items()
+
 def get_allocation(sitename, alloc_name):
     try:
         logging.debug(f"Getting IPv6 allocation for {sitename}")
@@ -84,7 +98,6 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
         logging.info(f"staging sense link for request {alias}")
         workflow_api = WorkflowCombinedApi()
         workflow_api.instance_new() if instance_uuid == "" else setattr(workflow_api, "si_uuid", instance_uuid)
-        vlan_tag = config_get("sense", "vlan_tag", default="any")
         intent = {
             "service_profile_uuid": get_profile_uuid(),
             "queries": [
@@ -95,8 +108,8 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
                         {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                         {"data.connections[0].terminals[1].uri": dst_uri},
                         {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                        {"data.connections[0].terminals[0].vlan_tag": vlan_tag}, 
-                        {"data.connections[0].terminals[1].vlan_tag": vlan_tag}
+                        {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
+                        {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
                     ]
                 },
                 {"ask": "maximum-bandwidth", "options": [{"name": "Connection 1"}]}
@@ -124,7 +137,10 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
         logging.info(f"provisioning sense link for request {alias} with bandwidth {bandwidth / 1000} G")
         workflow_api = WorkflowCombinedApi()
         workflow_api.si_uuid = instance_uuid
-        vlan_tag = config_get("sense", "vlan_tag", default="any")
+        status = workflow_api.instance_get_status(si_uuid=instance_uuid)
+        if 'COMPILED' not in status:
+            logging.debug(f"Request {alias} not in compiled status, will try to provision again")
+            return False
         intent = {
             "service_profile_uuid": get_profile_uuid(),
             "queries": [
@@ -136,8 +152,8 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
                         {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                         {"data.connections[0].terminals[1].uri": dst_uri},
                         {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                        {"data.connections[0].terminals[0].vlan_tag": vlan_tag}, 
-                        {"data.connections[0].terminals[1].vlan_tag": vlan_tag}
+                        {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
+                        {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
                     ]
                 }
             ]
@@ -159,6 +175,9 @@ def modify_link(instance_uuid, bandwidth, alias=""):
         workflow_api = WorkflowCombinedApi()
         workflow_api.si_uuid = instance_uuid
         status = workflow_api.instance_get_status(si_uuid=instance_uuid)
+        if "READY" not in status:
+            logging.debug(f"Request {alias} not in ready status, will try to modify again")
+            return False
         intent = {
             "service_profile_uuid": get_profile_uuid(),
             "queries": [
@@ -185,13 +204,13 @@ def delete_link(instance_uuid):
         logging.info(f"deleting sense link with uuid {instance_uuid}")
         workflow_api = WorkflowCombinedApi()
         status = workflow_api.instance_get_status(si_uuid=instance_uuid)
-        if "error" in status:
+        if "ERROR" in status:
             raise ValueError(status)
         if not any(status.startswith(s) for s in ["CREATE", "REINSTATE", "MODIFY"]):
             raise ValueError(f"Cannot cancel an instance in status '{status}'")
         workflow_api.instance_operate("cancel", si_uuid=instance_uuid, sync="true", force=str("READY" not in status).lower())
         total_time = 0
-        while "CANCEL - READY" not in status and total_time < 30:
+        while "CANCEL - READY" not in status and total_time < 300:
             sleep(5)
             status = workflow_api.instance_get_status(si_uuid=instance_uuid)
             total_time += 5

@@ -11,7 +11,6 @@ def preparer(client=None, session=None):
                                     src_site=rule["source_replica_expression"], 
                                     dst_site=rule["rse_expression"],
                                     priority=rule["priority"],
-                                    n_bytes_total=rule["bytes"],
                                     transfer_status="INIT",
                                     )
             new_request.save(session=session)
