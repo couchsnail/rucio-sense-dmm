@@ -17,7 +17,7 @@ from dmm.frontend.frontend import frontend_app
 
 class DMM:
     def __init__(self):
-        self.host = "localhost" #config_get("dmm", "host", default="localhost")
+        self.host = config_get("dmm", "host", default="localhost")
         self.port = config_get_int("dmm", "port", default=80)
         self.cert = config_get("dmm", "cert")
         self.key = config_get("dmm", "key")
@@ -59,4 +59,4 @@ class DMM:
         }
         fork(self.dmm_daemon_frequency, self.lock, dmm_daemons)
 
-        serve(frontend_app, port=8080, host=self.host)
+        serve(frontend_app, port=80, host=self.host)
