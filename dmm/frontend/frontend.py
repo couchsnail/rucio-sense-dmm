@@ -46,7 +46,6 @@ def handle_client(rule_id, session=None):
 def get_dmm_status(session=None):
     cursor = get_request_cursor(session=session)
     data = cursor.fetchall() 
-    print(data)
     try:
         return render_template("index.html", data=data)
     except Exception as e:

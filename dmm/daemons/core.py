@@ -22,23 +22,25 @@ def decider(network_graph=None, session=None):
     reqs =  get_request_by_status(status=["ALLOCATED", "MODIFIED", "STAGED", "DECIDED", "PROVISIONED", "FINISHED", "STALE"], session=session)
     for req in reqs:
         if not network_graph.has_node(req.src_site):
-            network_graph.add_node(req.src_site, uplink_capacity=get_site(req.src_site, attr="port_capacity", session=session))
+            network_graph.add_node(req.src_site, port_capacity=get_site(req.src_site, attr="port_capacity", session=session))
         if not network_graph.has_node(req.dst_site):
-            network_graph.add_node(req.dst_site, uplink_capacity=get_site(req.dst_site, attr="port_capacity", session=session))
+            network_graph.add_node(req.dst_site, port_capacity=get_site(req.dst_site, attr="port_capacity", session=session))
         if not any(attr["rule_id"] == req.rule_id for u, v, attr in network_graph.edges(data=True)):
             network_graph.add_edge(req.src_site, req.dst_site, rule_id=req.rule_id, priority=req.priority, bandwidth=req.bandwidth, max_bandwidth=req.max_bandwidth)
     
-    # update bandwidths for each endpoint
+    # reverse sort by sum of all priorities of edges on a node
+    total_priority_filter = lambda x : sum(rule['priority'] for rules in network_graph[x].values() for rule in rules.values())
+    max_node = sorted(network_graph.nodes, key=total_priority_filter, reverse=True)[0]
+    total_priority = sum(rule['priority'] for rules in network_graph[max_node].values() for rule in rules.values())
+
     for src, dst, key, data in network_graph.edges(data=True, keys=True):
-        src_capacity = network_graph.nodes[src]["uplink_capacity"]
-        dst_capacity = network_graph.nodes[dst]["uplink_capacity"]
+        print(src, dst, data)
+        src_capacity = network_graph.nodes[src]["port_capacity"]
+        dst_capacity = network_graph.nodes[dst]["port_capacity"]
         priority = data["priority"]
-        
-        # bandwidth between two points can't exceed min of port capacity of either site
+
         min_capacity = min(src_capacity, dst_capacity)
-        total_priority = sum(edge_data["priority"] for edge_data in network_graph[src][dst].values())
-        
-        # priority weighted share
+
         if total_priority == 0:
             updated_bandwidth = 0.0 
         else:
@@ -49,10 +51,9 @@ def decider(network_graph=None, session=None):
     # for each node, scale bandwidth by max / total assigned if total assigned exceeds max
     for node in network_graph.nodes:
         total_outgoing_bandwidth = sum(data["bandwidth"] for _, _, data in network_graph.edges(node, data=True))
-        uplink_capacity = network_graph.nodes[node]["uplink_capacity"]
-        
-        if total_outgoing_bandwidth > uplink_capacity:
-            scaling_factor = uplink_capacity / total_outgoing_bandwidth
+        port_capacity = network_graph.nodes[node]["port_capacity"]
+        if total_outgoing_bandwidth > port_capacity:
+            scaling_factor = port_capacity / total_outgoing_bandwidth
             for _, _, data in network_graph.edges(node, data=True):
                 data["bandwidth"] *= scaling_factor
 

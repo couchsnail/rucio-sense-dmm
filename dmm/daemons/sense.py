@@ -30,18 +30,18 @@ def stager(session=None):
 @databased
 def provision(session=None):
     def provision_sense_link(req, session):
-        # status = sense.provision_link(
-        #     req.sense_link_id,
-        #     get_site(req.src_site, attr="sense_uri", session=session),
-        #     get_site(req.dst_site, attr="sense_uri", session=session),
-        #     req.src_ipv6_block,
-        #     req.dst_ipv6_block,
-        #     int(req.bandwidth),
-        #     alias=req.rule_id
-        # )
-        # if status:
-        #     modify_link_config(req, max_active=1500, min_active=1500)
-        #     modify_se_config(req, max_inbound=1500, max_outbound=1500)
+        status = sense.provision_link(
+            req.sense_link_id,
+            get_site(req.src_site, attr="sense_uri", session=session),
+            get_site(req.dst_site, attr="sense_uri", session=session),
+            req.src_ipv6_block,
+            req.dst_ipv6_block,
+            int(req.bandwidth),
+            alias=req.rule_id
+        )
+        if status:
+            modify_link_config(req, max_active=1500, min_active=1500)
+            modify_se_config(req, max_inbound=1500, max_outbound=1500)
             mark_requests([req], "PROVISIONED", session)
     reqs_decided = [req for req in get_request_by_status(status=["DECIDED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
@@ -51,17 +51,13 @@ def provision(session=None):
 @databased
 def sense_modifier(session=None):
     def modify_sense_link(req):
-    #     status = sense.modify_link(
-    #         req.sense_link_id,
-    #         int(req.bandwidth),
-    #         alias=req.rule_id
-    #     )
-    #     if status:
-    #         mark_requests([req], "PROVISIONED", session)
-       
-       
-        ## DELETE THIS
-        mark_requests([req], "PROVISIONED", session)
+        status = sense.modify_link(
+            req.sense_link_id,
+            int(req.bandwidth),
+            alias=req.rule_id
+        )
+        if status:
+            mark_requests([req], "PROVISIONED", session)
     reqs_stale = [req for req in get_request_by_status(status=["STALE"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_stale:
