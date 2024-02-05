@@ -9,7 +9,7 @@ from dmm.utils.config import config_get, config_get_int
 from dmm.utils.orchestrator import fork
 
 from dmm.daemons.rucio import preparer, rucio_modifier, finisher
-from dmm.daemons.sense import stager, provision, sense_modifier, reaper
+from dmm.daemons.sense import stager, provision, sense_modifier, canceller, deleter
 from dmm.daemons.core import decider
 from dmm.daemons.core import allocator
 from dmm.daemons.sites import refresh_site_db
@@ -49,7 +49,8 @@ class DMM:
             stager: None, 
             provision: None, 
             sense_modifier: None,
-            reaper: None
+            canceller: None,
+            deleter: None
         }
         fork(self.sense_daemon_frequency, self.lock, sense_daemons)
         

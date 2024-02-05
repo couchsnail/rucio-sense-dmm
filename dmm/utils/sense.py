@@ -17,7 +17,7 @@ VLAN_MAP = {
         "urn:ogf:network:ultralight.org:2013" + "-" + "urn:ogf:network:fnal.gov:2023" : "3610-3612",
         "urn:ogf:network:nrp-nautilus.io:2020" + "-" + "urn:ogf:network:ultralight.org:2013" : "3985-3989",
         "urn:ogf:network:ultralight.org:2013" + "-" + "urn:ogf:network:nrp-nautilus.io:2020" : "3985-3989"
-        }
+    }
 
 PROFILE_UUID = ""
 
@@ -139,8 +139,8 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
         workflow_api.si_uuid = instance_uuid
         status = workflow_api.instance_get_status(si_uuid=instance_uuid)
         if 'COMPILED' not in status:
-            logging.debug(f"Request {alias} not in compiled status, will try to provision again")
-            return False
+            logging.debug(f"Request {instance_uuid} not in compiled status, will try to provision again")
+            raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to provision again")
         intent = {
             "service_profile_uuid": get_profile_uuid(),
             "queries": [
@@ -167,17 +167,16 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
         return response
     except Exception as e:
         logging.error(f"Error occurred in provision_link: {str(e)}")
-        raise ValueError(f"Provisioning link failed for {instance_uuid}")
 
-def modify_link(instance_uuid, bandwidth, alias=""):
+def modify_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, alias=""):
     try:
         logging.info(f"modifying sense link for request {alias} with new bandwidth {bandwidth}")
         workflow_api = WorkflowCombinedApi()
         workflow_api.si_uuid = instance_uuid
         status = workflow_api.instance_get_status(si_uuid=instance_uuid)
         if "READY" not in status:
-            logging.debug(f"Request {alias} not in ready status, will try to modify again")
-            return False
+            logging.debug(f"Request {instance_uuid} not in ready status, will try to modify again")
+            raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to modify again")
         intent = {
             "service_profile_uuid": get_profile_uuid(),
             "queries": [
@@ -185,6 +184,12 @@ def modify_link(instance_uuid, bandwidth, alias=""):
                     "ask": "edit",
                     "options": [
                         {"data.connections[0].bandwidth.capacity": str(bandwidth)},
+                        {"data.connections[0].terminals[0].uri": src_uri},
+                        {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
+                        {"data.connections[0].terminals[1].uri": dst_uri},
+                        {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                        {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
+                        {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
                     ]
                 }
             ]
@@ -194,30 +199,30 @@ def modify_link(instance_uuid, bandwidth, alias=""):
         response = workflow_api.instance_modify(json.dumps(intent), sync="true")
         if not good_response(response):
             raise ValueError(f"SENSE query failed for {instance_uuid}")
+        return response
     except Exception as e:
         logging.error(f"Error occurred in modify_link: {str(e)}")
-        raise ValueError(f"Modifying link failed for {instance_uuid}")
-    logging.debug(f"Modify got response {response}")
 
+def cancel_link(instance_uuid):
+    try:
+        logging.info(f"cancelling sense link with uuid {instance_uuid}")
+        workflow_api = WorkflowCombinedApi()
+        status = workflow_api.instance_get_status(si_uuid=instance_uuid)
+        if any(s not in status for s in ["CREATE", "REINSTATE", "MODIFY"]):
+            raise ValueError(f"Cannot cancel an instance in status '{status}'")
+        response = workflow_api.instance_operate("cancel", si_uuid=instance_uuid, sync="true", force=str("READY" not in status).lower())
+        return response
+    except Exception as e:
+        logging.error(f"Error occurred in cancel_link: {str(e)}")
+    
 def delete_link(instance_uuid):
     try:
         logging.info(f"deleting sense link with uuid {instance_uuid}")
         workflow_api = WorkflowCombinedApi()
         status = workflow_api.instance_get_status(si_uuid=instance_uuid)
-        if "ERROR" in status:
-            raise ValueError(status)
-        if not any(status.startswith(s) for s in ["CREATE", "REINSTATE", "MODIFY"]):
-            raise ValueError(f"Cannot cancel an instance in status '{status}'")
-        workflow_api.instance_operate("cancel", si_uuid=instance_uuid, sync="true", force=str("READY" not in status).lower())
-        total_time = 0
-        while "CANCEL - READY" not in status and total_time < 300:
-            sleep(5)
-            status = workflow_api.instance_get_status(si_uuid=instance_uuid)
-            total_time += 5
-        try:
-            workflow_api.instance_delete(si_uuid=instance_uuid)
-        except:
-            raise Exception(f"Cancel operation disrupted; instance not deleted")
+        if "CANCEL" not in status or "READY" not in status:
+            logging.debug(f"Request not in ready status, will try to delete again")
+            raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to delete again")
+        workflow_api.instance_delete(si_uuid=instance_uuid)
     except Exception as e:
         logging.error(f"Error occurred in delete_link: {str(e)}")
-        raise ValueError(f"Deleting link failed for {instance_uuid}")
