@@ -7,8 +7,6 @@ import json
 from dmm.db.session import get_engine
 from dmm.utils.sense import get_site_info
 
-from dmm.utils.config import config_get
-
 BASE = declarative_base()
 
 class ModelBase(object):
@@ -48,7 +46,7 @@ class Request(BASE, ModelBase):
     modified_priority = Column(Integer())
     max_bandwidth = Column(Float())
     bandwidth = Column(Float())
-    sense_link_id = Column(String(255))
+    sense_uuid = Column(String(255))
 
     def __init__(self, **kwargs):
         super(Request, self).__init__(**kwargs)
