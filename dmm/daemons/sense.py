@@ -1,7 +1,7 @@
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
-from dmm.utils.db import get_request_by_status, mark_requests, get_site, free_endpoint
+from dmm.utils.db import get_requests, mark_requests, get_site, free_endpoint
 from dmm.utils.fts import modify_link_config, modify_se_config
 import dmm.utils.sense as sense
 
@@ -22,7 +22,7 @@ def stager(session=None):
         modify_link_config(req, max_active=50, min_active=50)
         modify_se_config(req, max_inbound=50, max_outbound=50)
         mark_requests([req], "STAGED", session)
-    reqs_init = [req for req in get_request_by_status(status=["ALLOCATED"], session=session)]
+    reqs_init = [req for req in get_requests(status=["ALLOCATED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_init:
             executor.submit(stage_sense_link, req, session)
@@ -42,7 +42,7 @@ def provision(session=None):
         modify_link_config(req, max_active=1500, min_active=1500)
         modify_se_config(req, max_inbound=1500, max_outbound=1500)
         mark_requests([req], "PROVISIONED", session)
-    reqs_decided = [req for req in get_request_by_status(status=["DECIDED"], session=session)]
+    reqs_decided = [req for req in get_requests(status=["DECIDED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_decided:
             executor.submit(provision_sense_link, req, session)
@@ -59,14 +59,14 @@ def sense_modifier(session=None):
             int(req.bandwidth),
             alias=req.rule_id
         )
-    reqs_stale = [req for req in get_request_by_status(status=["STALE"], session=session)]
+    reqs_stale = [req for req in get_requests(status=["STALE"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_stale:
             executor.submit(modify_sense_link, req)
 
 @databased
 def canceller(session=None):
-    reqs_finished = [req for req in get_request_by_status(status=["FINISHED"], session=session)]
+    reqs_finished = [req for req in get_requests(status=["FINISHED"], session=session)]
     for req in reqs_finished:
         if (datetime.utcnow() - req.updated_at).seconds > 60:
             sense.cancel_link(req.sense_uuid)
@@ -76,7 +76,7 @@ def canceller(session=None):
 
 @databased
 def deleter(session=None):
-    reqs_cancelled = [req for req in get_request_by_status(status=["CANCELLED"], session=session)]
+    reqs_cancelled = [req for req in get_requests(status=["CANCELLED"], session=session)]
     for req in reqs_cancelled:
         sense.cancel_link(req.sense_uuid)
         mark_requests([req], "DELETED", session=session)

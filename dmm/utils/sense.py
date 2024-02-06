@@ -2,8 +2,6 @@ import json
 import re
 
 import logging
-from time import sleep
-import requests
 
 from dmm.utils.config import config_get
 
@@ -65,11 +63,6 @@ def get_site_info(rse_name):
     except Exception as e:
         logging.error(f"Error occurred in get_site_info: {str(e)}")
         raise ValueError(f"Getting site info failed for {rse_name}")
-
-def get_siterm_list_of_endpoints(site, certs):
-    url = str(site.query_url) + "/MAIN/sitefe/json/frontend/configuration"
-    data = requests.get(url, cert=certs, verify=False).json()
-    return data[site.name]["metadata"]["xrootd"].items()
 
 def get_allocation(sitename, alloc_name):
     try:

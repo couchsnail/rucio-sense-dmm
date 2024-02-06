@@ -1,4 +1,4 @@
-from dmm.utils.db import mark_requests, get_request_by_status, get_request_from_id, update_priority
+from dmm.utils.db import mark_requests, get_requests, get_request_from_id, update_priority
 from dmm.db.models import Request
 from dmm.db.session import databased
 
@@ -17,7 +17,7 @@ def preparer(client=None, session=None):
 
 @databased
 def rucio_modifier(client=None, session=None):
-    reqs = get_request_by_status(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED"], session=session)
+    reqs = get_requests(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED"], session=session)
     for req in reqs:
         curr_prio_in_rucio = client.get_replication_rule(req.rule_id)["priority"]
         if req.priority != curr_prio_in_rucio:
@@ -27,7 +27,7 @@ def rucio_modifier(client=None, session=None):
 # updates request status in db, daemon just deregisters request
 @databased
 def finisher(client=None, session=None):
-    reqs = get_request_by_status(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED"], session=session)
+    reqs = get_requests(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED"], session=session)
     for req in reqs:
         status = client.get_replication_rule(req.rule_id)['state']
         if status == "OK":

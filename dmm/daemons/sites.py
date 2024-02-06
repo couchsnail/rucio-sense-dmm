@@ -1,6 +1,9 @@
 from dmm.db.session import databased
 from dmm.utils.config import config_get
-from dmm.utils.db import update_site
+from dmm.utils.db import update_site, get_all_endpoints
+
+from dmm.db.models import Request
+from sqlalchemy import or_
 
 @databased
 def refresh_site_db(certs=None, session=None):
@@ -12,5 +15,10 @@ def refresh_site_db(certs=None, session=None):
         
 @databased
 def free_unused_endpoints(session=None):
-    # check if any endpoints are in use in db but not really, mark them as not in use
-    ...
+    endpoints = get_all_endpoints(session=session)
+    for endpoint in endpoints:
+        truly_in_use = session.query(Request).filter(or_(Request.src_url == endpoint.hostname, Request.dst_url == endpoint.hostname)).first()
+        if not (endpoint.in_use and truly_in_use):
+            endpoint.update({
+                "in_use": False
+            })

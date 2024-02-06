@@ -1,14 +1,15 @@
 import logging
 from sqlalchemy import text
+
 from dmm.db.models import Request, Site, Endpoint
-from dmm.utils.sense import get_siterm_list_of_endpoints
+from dmm.utils.siterm import get_siterm_list_of_endpoints
 
 # Requests
 def get_request_from_id(rule_id, session=None):
     req = session.query(Request).filter(Request.rule_id == rule_id).first()
     return req if req else None
 
-def get_request_by_status(status=None, session=None):
+def get_requests(status=None, session=None):
     try:
         if status is not None:
             return session.query(Request).filter(Request.transfer_status.in_(status)).all()

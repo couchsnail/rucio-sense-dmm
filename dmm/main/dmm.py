@@ -10,15 +10,14 @@ from dmm.utils.orchestrator import fork
 
 from dmm.daemons.rucio import preparer, rucio_modifier, finisher
 from dmm.daemons.sense import stager, provision, sense_modifier, canceller, deleter
-from dmm.daemons.core import decider
-from dmm.daemons.core import allocator
-from dmm.daemons.sites import refresh_site_db
+from dmm.daemons.core import decider, allocator
+from dmm.daemons.sites import refresh_site_db, free_unused_endpoints
 from dmm.frontend.frontend import frontend_app
 
 class DMM:
     def __init__(self):
-        self.host = config_get("dmm", "host", default="localhost")
-        self.port = config_get_int("dmm", "port", default=80)
+        self.host = config_get("dmm", "host")
+        self.port = config_get_int("dmm", "port")
         self.cert = config_get("dmm", "cert")
         self.key = config_get("dmm", "key")
 
@@ -34,7 +33,8 @@ class DMM:
     def start(self):
         logging.info("Starting Daemons")
         database_builder_daemons = {
-            refresh_site_db: {"certs": (self.cert, self.key)}
+            refresh_site_db: {"certs": (self.cert, self.key)},
+            free_unused_endpoints: None
         }
         fork(self.database_builder_daemon_frequency, self.lock, database_builder_daemons)
 
@@ -60,4 +60,4 @@ class DMM:
         }
         fork(self.dmm_daemon_frequency, self.lock, dmm_daemons)
 
-        serve(frontend_app, port=80, host=self.host)
+        serve(frontend_app, port=self.port, host=self.host)
