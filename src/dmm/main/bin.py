@@ -12,7 +12,7 @@ def sigint_handler(dmm):
         sys.exit(0)
     return actual_handler
 
-if __name__ == "__main__":
+def main():
     cli = argparse.ArgumentParser(description="Rucio-SENSE data movement manager")
     cli.add_argument(
         "--loglevel", type=str, default="INFO", 
