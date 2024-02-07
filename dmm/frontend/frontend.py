@@ -6,7 +6,7 @@ import json
 from dmm.db.session import databased
 from dmm.utils.db import get_request_from_id, get_request_cursor
 
-frontend_app = Flask(__name__)
+frontend_app = Flask(__name__, template_folder="templates")
 
 @frontend_app.route("/query/<rule_id>", methods=["GET"])
 @databased
@@ -49,5 +49,5 @@ def get_dmm_status(session=None):
     try:
         return render_template("index.html", data=data)
     except Exception as e:
-        print(e)
+        logging.error(e)
         return "No requests found in DMM\n"
