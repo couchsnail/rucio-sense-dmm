@@ -5,7 +5,7 @@ RUN apt-get clean autoclean && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/
 
-RUN pip3 install sense-dmm==0.2.3
+RUN pip3 install sense-dmm
 
 EXPOSE 80
 
