@@ -59,6 +59,7 @@ def sense_modifier(session=None):
             int(req.bandwidth),
             alias=req.rule_id
         )
+        mark_requests([req], "PROVISIONED", session)
     reqs_stale = [req for req in get_requests(status=["STALE"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_stale:
