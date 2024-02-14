@@ -17,7 +17,7 @@ spec:
       - name: dmm
         image: aaarora/dmm:latest
         ports:
-        - containerPort: 5000
+        - containerPort: 80
         volumeMounts:
         - name: dmm-config
           mountPath: /opt/dmm/dmm.cfg
@@ -25,6 +25,9 @@ spec:
         - name: sense-config
           mountPath: /root/.sense-o-auth.yaml
           subPath: .sense-o-auth.yaml
+        - name: rucio-client-config
+          mountPath: /opt/rucio/etc/rucio.cfg
+          subPath: rucio.cfg
         - name: ca-volume
           mountPath: /etc/grid-security/certificates/
         - name: certs
@@ -39,6 +42,9 @@ spec:
       - name: dmm-config
         secret:
           secretName: dmm-config
+      - name: rucio-client-config
+        secret:
+          secretName: rucio-client-config
       - name: sense-config
         secret:
           secretName: sense-config

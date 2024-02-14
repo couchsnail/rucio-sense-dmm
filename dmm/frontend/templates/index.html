@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>DMM Status</title>
+</head>
+<body>
+<style>
+    td {
+        width: 150px;
+        text-align: center;
+        border: 1px solid black;
+        padding: 5px;
+        }
+</style>
+<table>
+  <thead>
+    <tr>
+        <th>rule_id</th>
+        <th>status</th>
+        <th>src_site</th>
+        <th>src_v6_range</th>
+        <th>src_hostname</th>
+        <th>dst_site</th>
+        <th>dst_v6_range</th>
+        <th>dst_hostname</th>
+        <th>priority</th>
+        <th>bandwidth</th>
+        <th>sense_uuid</th>
+    </tr>
+    </thead>    
+    <tbody>
+    {% for row in data %}    
+        <tr>
+            <td>{{row[0]}}</td>
+            <td>{{row[1]}}</td>
+            <td>{{row[2]}}</td>
+            <td>{{row[3]}}</td>
+            <td>{{row[4]}}</td>
+            <td>{{row[5]}}</td>
+            <td>{{row[6]}}</td>
+            <td>{{row[7]}}</td>
+            <td>{{row[8]}}</td>
+            <td>{{row[11]}}</td>
+            <td>{{row[12]}}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</body>
+</html>

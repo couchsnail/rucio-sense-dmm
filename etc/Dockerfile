@@ -5,14 +5,8 @@ RUN apt-get clean autoclean && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/
 
-RUN pip3 install sense-o-api==1.32 sqlalchemy psycopg2-binary networkx
+RUN pip3 install sense-dmm
 
-WORKDIR /opt/dmm
-COPY ./ /opt/dmm
+EXPOSE 80
 
-ENV PYTHONPATH=/opt/dmm/
-ENV DMM_CONFIG /opt/dmm/dmm.cfg
-
-EXPOSE 5000
-
-ENTRYPOINT ["bin/dmm", "--loglevel", "debug"]
+ENTRYPOINT ["dmm", "--loglevel", "debug"]
