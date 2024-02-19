@@ -30,5 +30,5 @@ def finisher(client=None, session=None):
     reqs = get_requests(status=["ALLOCATED", "STAGED", "DECIDED", "PROVISIONED"], session=session)
     for req in reqs:
         status = client.get_replication_rule(req.rule_id)['state']
-        if status == "OK":
+        if status in ["OK", "STUCK"]:
             mark_requests([req], "FINISHED", session=session)

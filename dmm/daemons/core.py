@@ -1,6 +1,8 @@
 from dmm.db.session import databased
 from dmm.utils.db import get_requests, mark_requests, update_bandwidth, get_site, get_unused_endpoint
 
+from dmm.utils.fts import modify_link_config, modify_se_config
+
 @databased
 def decider(network_graph=None, session=None):
     # Remove deleted requests from graph
@@ -94,6 +96,8 @@ def allocator(session=None):
                     "dst_url": req_fin.dst_url,
                     "transfer_status": "ALLOCATED"
                 })
+                modify_link_config(new_request, max_active=20, min_active=20)
+                modify_se_config(new_request, max_inbound=20, max_outbound=20)
                 mark_requests([req_fin], "DELETED", session)
                 reqs_finished.remove(req_fin)
                 break
@@ -107,3 +111,5 @@ def allocator(session=None):
                 "dst_url": dst_endpoint.hostname,
                 "transfer_status": "ALLOCATED"
             })
+            modify_link_config(new_request, max_active=20, min_active=20)
+            modify_se_config(new_request, max_inbound=20, max_outbound=20)
