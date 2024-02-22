@@ -93,135 +93,120 @@ def free_allocation(sitename, alloc_name):
         raise ValueError(f"Freeing allocation failed for {sitename} and {alloc_name}")
     
 def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias=""):
-    try:
-        logging.info(f"staging sense link for request {alias}")
-        workflow_api = WorkflowCombinedApi()
-        workflow_api.instance_new() if instance_uuid == "" else setattr(workflow_api, "si_uuid", instance_uuid)
-        intent = {
-            "service_profile_uuid": get_profile_uuid(),
-            "queries": [
-                {
-                    "ask": "edit",
-                    "options": [
-                        {"data.connections[0].terminals[0].uri": src_uri},
-                        {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
-                        {"data.connections[0].terminals[1].uri": dst_uri},
-                        {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                        {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
-                        {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
-                    ]
-                },
-                {"ask": "maximum-bandwidth", "options": [{"name": "Connection 1"}]}
-            ]
-        }
-        if alias:
-            intent["alias"] = alias
-        response = workflow_api.instance_create(json.dumps(intent))
-        if not good_response(response):
-            raise ValueError(f"SENSE query failed for {instance_uuid}")
-        response = json.loads(response)
-        logging.debug(f"Staging returned response {response}")
-        for query in response["queries"]:
-            if query["asked"] == "maximum-bandwidth":
-                result = query["results"][0]
-                if "bandwidth" not in result:
-                    raise ValueError(f"SENSE query failed for {instance_uuid}")
-                return response["service_uuid"], float(result["bandwidth"])
-    except Exception as e:
-        logging.error(f"Error occurred in staging link: {str(e)}")
-        raise ValueError("staging link failed")
+    logging.info(f"staging sense link for request {alias}")
+    workflow_api = WorkflowCombinedApi()
+    workflow_api.instance_new() if instance_uuid == "" else setattr(workflow_api, "si_uuid", instance_uuid)
+    intent = {
+        "service_profile_uuid": get_profile_uuid(),
+        "queries": [
+            {
+                "ask": "edit",
+                "options": [
+                    {"data.connections[0].terminals[0].uri": src_uri},
+                    {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
+                    {"data.connections[0].terminals[1].uri": dst_uri},
+                    {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                    {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
+                    {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
+                ]
+            },
+            {"ask": "maximum-bandwidth", "options": [{"name": "Connection 1"}]}
+        ]
+    }
+    if alias:
+        intent["alias"] = alias
+    response = workflow_api.instance_create(json.dumps(intent))
+    if not good_response(response):
+        raise ValueError(f"SENSE query failed for {instance_uuid}")
+    response = json.loads(response)
+    logging.debug(f"Staging returned response {response}")
+    for query in response["queries"]:
+        if query["asked"] == "maximum-bandwidth":
+            result = query["results"][0]
+            if "bandwidth" not in result:
+                raise ValueError(f"SENSE query failed for {instance_uuid}")
+            return response["service_uuid"], float(result["bandwidth"])
 
 def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, alias=""):
-    try:
-        logging.info(f"provisioning sense link for request {alias} with bandwidth {bandwidth / 1000} G")
-        workflow_api = WorkflowCombinedApi()
-        workflow_api.si_uuid = instance_uuid
-        status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
-        if not re.match(r"(CREATE) - COMPILED$", status):
-            logging.debug(f"Request {instance_uuid} not in compiled status, will try to provision again")
-            raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to provision again")
-        intent = {
-            "service_profile_uuid": get_profile_uuid(),
-            "queries": [
-                {
-                    "ask": "edit",
-                    "options": [
-                        {"data.connections[0].bandwidth.capacity": str(bandwidth)},
-                        {"data.connections[0].terminals[0].uri": src_uri},
-                        {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
-                        {"data.connections[0].terminals[1].uri": dst_uri},
-                        {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                        {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
-                        {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
-                    ]
-                }
-            ]
-        }
-        if alias:
-            intent["alias"] = alias
-        response = workflow_api.instance_create(json.dumps(intent))
-        if not good_response(response):
-            raise ValueError(f"SENSE query failed for {instance_uuid}")
-        workflow_api.instance_operate("provision", sync="true")
-        return response
-    except Exception as e:
-        logging.error(f"Error occurred in provision_link: {str(e)}")
+    logging.info(f"provisioning sense link for request {alias} with bandwidth {bandwidth / 1000} G")
+    workflow_api = WorkflowCombinedApi()
+    workflow_api.si_uuid = instance_uuid
+    status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
+    if not re.match(r"(CREATE) - COMPILED$", status):
+        logging.debug(f"Request {instance_uuid} not in compiled status, will try to provision again")
+        raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to provision again")
+    intent = {
+        "service_profile_uuid": get_profile_uuid(),
+        "queries": [
+            {
+                "ask": "edit",
+                "options": [
+                    {"data.connections[0].bandwidth.capacity": str(bandwidth)},
+                    {"data.connections[0].terminals[0].uri": src_uri},
+                    {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
+                    {"data.connections[0].terminals[1].uri": dst_uri},
+                    {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                    {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
+                    {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
+                ]
+            }
+        ]
+    }
+    if alias:
+        intent["alias"] = alias
+    response = workflow_api.instance_create(json.dumps(intent))
+    if not good_response(response):
+        raise ValueError(f"SENSE query failed for {instance_uuid}")
+    workflow_api.instance_operate("provision", sync="true")
+    return response
 
 def modify_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, alias=""):
-    try:
-        logging.info(f"modifying sense link for request {alias} with new bandwidth {bandwidth}")
-        workflow_api = WorkflowCombinedApi()
-        workflow_api.si_uuid = instance_uuid
-        status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
-        if "READY" not in status:
-            logging.debug(f"Request {instance_uuid} not in ready status, will try to modify again")
-            raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to modify again")
-        intent = {
-            "service_profile_uuid": get_profile_uuid(),
-            "queries": [
-                {
-                    "ask": "edit",
-                    "options": [
-                        {"data.connections[0].bandwidth.capacity": str(bandwidth)},
-                        {"data.connections[0].terminals[0].uri": src_uri},
-                        {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
-                        {"data.connections[0].terminals[1].uri": dst_uri},
-                        {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                        {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
-                        {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
-                    ]
-                }
-            ]
-        }
-        if alias:
-            intent["alias"] = alias
-        response = workflow_api.instance_modify(json.dumps(intent), sync="true")
-        if not good_response(response):
-            raise ValueError(f"SENSE query failed for {instance_uuid}")
-        return response
-    except Exception as e:
-        logging.error(f"Error occurred in modify_link: {str(e)}")
+    logging.info(f"modifying sense link for request {alias} with new bandwidth {bandwidth}")
+    workflow_api = WorkflowCombinedApi()
+    workflow_api.si_uuid = instance_uuid
+    status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
+    if "READY" not in status:
+        logging.debug(f"Request {instance_uuid} not in ready status, will try to modify again")
+        raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to modify again")
+    intent = {
+        "service_profile_uuid": get_profile_uuid(),
+        "queries": [
+            {
+                "ask": "edit",
+                "options": [
+                    {"data.connections[0].bandwidth.capacity": str(bandwidth)},
+                    {"data.connections[0].terminals[0].uri": src_uri},
+                    {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
+                    {"data.connections[0].terminals[1].uri": dst_uri},
+                    {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
+                    {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
+                    {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
+                ]
+            }
+        ]
+    }
+    if alias:
+        intent["alias"] = alias
+    response = workflow_api.instance_modify(json.dumps(intent), sync="true")
+    if not good_response(response):
+        raise ValueError(f"SENSE query failed for {instance_uuid}")
+    return response
 
 def cancel_link(instance_uuid):
-    try:
-        logging.info(f"cancelling sense link with uuid {instance_uuid}")
-        workflow_api = WorkflowCombinedApi()
-        status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
-        if not re.match(r"(CREATE|MODIFY|REINSTATE) - READY$", status):
-            raise ValueError(f"Cannot cancel an instance in status '{status}'")
-        response = workflow_api.instance_operate("cancel", si_uuid=instance_uuid, sync="true", force=str("READY" not in status).lower())
-        return response
-    except Exception as e:
-        logging.error(f"Error occurred in cancel_link: {str(e)}")
-    
+    logging.info(f"cancelling sense link with uuid {instance_uuid}")
+    workflow_api = WorkflowCombinedApi()
+    status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
+    if not re.match(r"(CREATE|MODIFY|REINSTATE) - READY$", status):
+        raise ValueError(f"Cannot cancel an instance in status '{status}', will try to cancel again")
+    response = workflow_api.instance_operate("cancel", si_uuid=instance_uuid, sync="true", force=str("READY" not in status).lower())
+    return response
+
 def delete_link(instance_uuid):
-    try:
-        logging.info(f"deleting sense link with uuid {instance_uuid}")
-        workflow_api = WorkflowCombinedApi()
-        status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
-        if not re.match(r"(CANCEL) - READY$", status):
-            logging.debug(f"Request not in ready status, will try to delete again")
-            raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to delete again")
-        workflow_api.instance_delete(si_uuid=instance_uuid)
-    except Exception as e:
-        logging.error(f"Error occurred in delete_link: {str(e)}")
+    logging.info(f"deleting sense link with uuid {instance_uuid}")
+    workflow_api = WorkflowCombinedApi()
+    status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
+    if not re.match(r"(CANCEL) - READY$", status):
+        logging.debug(f"Request not in ready status, will try to delete again")
+        raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to delete again")
+    response = workflow_api.instance_delete(si_uuid=instance_uuid)
+    return response
