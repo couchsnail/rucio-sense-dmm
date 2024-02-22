@@ -6,7 +6,6 @@ DBNAME = ""
 USER = ""
 PASSWORD = ""
 
-# Add a rule to the requests table
 def add_rule(rule_id, src_site, dst_site, priority):
     conn = psycopg2.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
     cur = conn.cursor()
@@ -14,7 +13,6 @@ def add_rule(rule_id, src_site, dst_site, priority):
     conn.commit()
     conn.close()
 
-# mark rule as modified, change priority and transfer_status to MODIFIED
 def modify_rule(rule_id, priority):
     conn = psycopg2.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
     cur = conn.cursor()
@@ -22,7 +20,6 @@ def modify_rule(rule_id, priority):
     conn.commit()
     conn.close()
 
-# mark rule as finished
 def finish_rule(rule_id):
     conn = psycopg2.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
     cur = conn.cursor()
@@ -33,7 +30,6 @@ def finish_rule(rule_id):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Fake Rucio Requests to DMM")
-    # collect action type, based on option selected, perform the action and require other args
     argparser.add_argument("action", help="Action to perform: add, finish, modify")
     argparser.add_argument("--rule_id", help="Rule ID")
     argparser.add_argument("--src_site", help="Source Site")
