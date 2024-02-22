@@ -6,7 +6,7 @@ from waitress import serve
 from rucio.client import Client
 
 from dmm.utils.config import config_get, config_get_int
-from dmm.utils.orchestrator import fork
+from dmm.main.orchestrator import fork
 
 from dmm.daemons.rucio import preparer, rucio_modifier, finisher
 from dmm.daemons.sense import stager, provision, sense_modifier, canceller, deleter

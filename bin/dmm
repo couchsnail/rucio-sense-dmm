@@ -5,8 +5,6 @@ import sys
 import signal
 import logging
 
-from dmm.main.dmm import DMM
-
 def sigint_handler(dmm):
     def actual_handler(sig, frame):
         logging.info("Stopping DMM (received SIGINT)")
@@ -24,20 +22,18 @@ cli.add_argument(
 )
 args = cli.parse_args()
 
-# Set up logging handlers
-handlers = [logging.FileHandler(filename=args.logfile)]
-if args.loglevel.upper() == "DEBUG":
-    handlers.append(logging.StreamHandler(sys.stdout))
 # Configure logging
 logging.basicConfig(
     format="(%(threadName)s) [%(asctime)s] %(levelname)s: %(message)s",
     datefmt="%m-%d-%Y %H:%M:%S %p",
-    level=getattr(logging, args.loglevel.upper()),
-    handlers=handlers
+    level=logging.DEBUG,
+    handlers=[logging.FileHandler(filename=args.logfile), logging.StreamHandler(sys.stdout)]
 )
 
-# Start DMM
-logging.info("Starting DMM")
-dmm = DMM()
-signal.signal(signal.SIGINT, sigint_handler(dmm))
-dmm.start()
+if __name__ == "__main__":
+    # Start DMM
+    from dmm.main.dmm import DMM
+    logging.info("Starting DMM")
+    dmm = DMM()
+    signal.signal(signal.SIGINT, sigint_handler(dmm))
+    dmm.start()

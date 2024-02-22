@@ -137,7 +137,7 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
         workflow_api = WorkflowCombinedApi()
         workflow_api.si_uuid = instance_uuid
         status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
-        if 'COMPILED' not in status:
+        if not re.match(r"(CREATE) - COMPILED$", status):
             logging.debug(f"Request {instance_uuid} not in compiled status, will try to provision again")
             raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to provision again")
         intent = {
@@ -207,7 +207,7 @@ def cancel_link(instance_uuid):
         logging.info(f"cancelling sense link with uuid {instance_uuid}")
         workflow_api = WorkflowCombinedApi()
         status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
-        if any(s not in status for s in ["CREATE", "REINSTATE", "MODIFY"]):
+        if not re.match(r"(CREATE|MODIFY|REINSTATE) - READY$", status):
             raise ValueError(f"Cannot cancel an instance in status '{status}'")
         response = workflow_api.instance_operate("cancel", si_uuid=instance_uuid, sync="true", force=str("READY" not in status).lower())
         return response
@@ -219,7 +219,7 @@ def delete_link(instance_uuid):
         logging.info(f"deleting sense link with uuid {instance_uuid}")
         workflow_api = WorkflowCombinedApi()
         status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
-        if "CANCEL" not in status or "READY" not in status:
+        if not re.match(r"(CANCEL) - READY$", status):
             logging.debug(f"Request not in ready status, will try to delete again")
             raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to delete again")
         workflow_api.instance_delete(si_uuid=instance_uuid)

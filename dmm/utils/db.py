@@ -67,9 +67,12 @@ def get_site(site_name, attr=None, session=None):
         raise
 
 def update_site(site, certs, session=None):
-    if get_site(site, session=session) is None:
+    site_exists = get_site(site, session=session)
+    if not site_exists:
         site_ = Site(name=site)
         site_.save(session=session)
+    else:
+        site_ = site_exists
     for block, hostname in get_siterm_list_of_endpoints(site=site_, certs=certs):
         if get_endpoint(hostname, session=session) is None:
             new_endpoint = Endpoint(site=site_.name,

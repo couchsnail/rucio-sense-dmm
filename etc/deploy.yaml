@@ -36,6 +36,13 @@ spec:
         - name: certs
           mountPath: /opt/certs/cert.pem
           subPath: cert.pem
+      - name: postgres
+        image: postgres
+        env:
+        - name: POSTGRES_USER
+          value: "dmm"
+        - name: POSTGRES_PASSWORD
+          value: "dmm"
       nodeSelector:
         kubernetes.io/hostname: nrp-01.nrp-nautilus.io
       volumes:
