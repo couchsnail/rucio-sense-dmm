@@ -27,8 +27,14 @@ class DMM:
         self.database_builder_daemon_frequency = config_get_int("daemons", "db", default=7200)
 
         self.network_graph = nx.MultiGraph()
-        self.rucio_client = Client()
+        
         self.lock = Lock()
+        self.use_rucio = False
+        try:
+            self.rucio_client = Client()
+            self.use_rucio = True
+        except Exception as e:
+            logging.error(f"Rucio not available, running in rucio-free mode")
 
     def start(self):
         logging.info("Starting Daemons")
@@ -38,12 +44,13 @@ class DMM:
         }
         fork(self.database_builder_daemon_frequency, self.lock, database_builder_daemons)
 
-        rucio_daemons = {
-            preparer: {"client": self.rucio_client}, 
-            rucio_modifier: {"client": self.rucio_client}, 
-            finisher: {"client": self.rucio_client}
-        }
-        fork(self.rucio_daemon_frequency, self.lock, rucio_daemons)
+        if self.use_rucio:
+            rucio_daemons = {
+                preparer: {"client": self.rucio_client}, 
+                rucio_modifier: {"client": self.rucio_client}, 
+                finisher: {"client": self.rucio_client}
+            }
+            fork(self.rucio_daemon_frequency, self.lock, rucio_daemons)
         
         sense_daemons = {
             stager: None, 

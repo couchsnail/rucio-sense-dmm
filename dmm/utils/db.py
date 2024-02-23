@@ -10,61 +10,41 @@ def get_request_from_id(rule_id, session=None):
     return req if req else None
 
 def get_requests(status=None, session=None):
-    try:
-        if status is not None:
-            return session.query(Request).filter(Request.transfer_status.in_(status)).all()
-        else:
-            return session.query(Request).all()
-    except Exception as e:
-        logging.error(f"Error getting request by status: {e}")
-        raise
+    if status is not None:
+        return session.query(Request).filter(Request.transfer_status.in_(status)).all()
+    else:
+        return session.query(Request).all()
 
 def get_request_cursor(session=None):
     return session.execute(text("SELECT * from requests")).cursor
 
 def mark_requests(reqs, status, session=None):
-    try:
-        for req in reqs:
-            req.update({
-                "transfer_status": status
-            })
-            logging.debug(f"Marked {req.rule_id} as {status}")
-    except Exception as e:
-        logging.error(f"Error marking requests: {e}")
-        raise
+    for req in reqs:
+        req.update({
+            "transfer_status": status
+        })
+        logging.debug(f"Marked {req.rule_id} as {status}")
 
 def update_bandwidth(req, bandwidth, session=None):
-    try:
-        req.update({
-            "bandwidth": bandwidth
-        })
-        logging.debug(f"Updated bandwidth to {bandwidth} for {req.rule_id}")
-    except Exception as e:
-        logging.error(f"Error updating bandwidth: {e}")
-        raise
+    req.update({
+        "bandwidth": bandwidth
+    })
+    logging.debug(f"Updated bandwidth to {bandwidth} for {req.rule_id}")
 
 def update_priority(req, priority, session=None):
-    try:
-        req.update({
-            "priority": priority,
-            "modified_priority": priority
-        })
-        logging.debug(f"Updated priority to {priority} for {req.rule_id}")
-    except Exception as e:
-        logging.error(f"Error updating bandwidth: {e}")
-        raise
+    req.update({
+        "priority": priority,
+        "modified_priority": priority
+    })
+    logging.debug(f"Updated priority to {priority} for {req.rule_id}")
 
 # Sites
 def get_site(site_name, attr=None, session=None):
-    try:
-        if attr:
-            query = session.query(Site).filter(Site.name == site_name).first()
-            return getattr(query, attr)
-        else:
-            return session.query(Site).filter(Site.name == site_name).first()
-    except Exception as e:
-        logging.error(f"Error getting site: {e}")
-        raise
+    if attr:
+        query = session.query(Site).filter(Site.name == site_name).first()
+        return getattr(query, attr)
+    else:
+        return session.query(Site).filter(Site.name == site_name).first()
 
 def update_site(site, certs, session=None):
     site_exists = get_site(site, session=session)
