@@ -9,7 +9,7 @@ from dmm.db.session import databased
 
 @databased
 def status_updater(session=None):
-    reqs_provisioned = [req for req in get_requests(status=["PROVISIONED"], session=session)]
+    reqs_provisioned = [req for req in get_requests(status=["STAGED", "PROVISIONED", "CANCELED", "STALE", "DECIDED", "FINISHED"], session=session)]
     for req in reqs_provisioned:
         status = sense.get_sense_circuit_status(req.sense_uuid)
         update_sense_circuit_status(req, status, session=session)

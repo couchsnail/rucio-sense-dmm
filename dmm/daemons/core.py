@@ -8,7 +8,7 @@ from dmm.utils.db import get_requests, mark_requests, update_bandwidth, get_site
 def decider(session=None):
     network_graph = MultiGraph()
     # Get all active requests
-    reqs =  get_requests(status=["STAGED", "ALLOCATED", "MODIFIED", "DECIDED", "STALE", "PROVISIONED", "FINISHED"], session=session)
+    reqs =  get_requests(status=["STAGED", "ALLOCATED", "MODIFIED", "DECIDED", "STALE", "PROVISIONED", "FINISHED", "CANCELED"], session=session)
     for req in reqs:
             src_port_capacity = get_site(req.src_site, attr="port_capacity", session=session)
             network_graph.add_node(req.src_site, port_capacity=src_port_capacity, remaining_capacity=src_port_capacity)
