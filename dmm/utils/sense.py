@@ -70,6 +70,22 @@ def get_site_info(rse_name):
         logging.error(f"Error occurred in get_site_info: {str(e)}")
         raise ValueError(f"Getting site info failed for {rse_name}")
 
+def get_one_host_ip_interface(site_uri):
+    manifest_json = {
+        "HOST": "?hostname?",
+        "NIC": "?nicname?",
+        "sparql": "SELECT ?bp WHERE { ?bp a nml:BidirectionalPort } LIMIT 1",
+        "sparql-ext": "SELECT ?hostname ?nicname WHERE { ?site nml:hasNode ?host. ?host nml:hostname ?hostname. ?host nml:hasBidirectionalPort ?nic. ?nic nml:isAlias ?orther_port. ?nic mrs:hasNetworkAddress ?nic_na_name. ?nic_na_name mrs:type 'sense-rtmon:name'. ?nic_na_name mrs:value ?nicname.  FILTER regex(str(?site), '%s') FILTER NOT EXISTS {?host nml:hasService ?sw_svc. ?sw_svc a nml:SwitchingService.}  } LIMIT 1".format(site_uri),
+        "required": "true"
+    }
+    workflowApi = WorkflowCombinedApi()
+    teamplate = json.load(manifest_json)
+    workflowApi.si_uuid = "a3ea7247-95d0-4c32-bc55-5ae3e30e84ef"
+    response = workflowApi.manifest_create(json.dumps(teamplate))
+    print(str(response))
+
+############################################################################################################
+# unused at the moment because it's very slow
 def get_allocation(sitename, alloc_name):
     try:
         logging.debug(f"Getting IPv6 allocation for {sitename}")
@@ -91,7 +107,8 @@ def free_allocation(sitename, alloc_name):
     except Exception as e:
         logging.error(f"Error occurred in free_allocation: {str(e)}")
         raise ValueError(f"Freeing allocation failed for {sitename} and {alloc_name}")
-    
+############################################################################################################
+
 def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias=""):
     logging.info(f"staging sense link for request {alias}")
     workflow_api = WorkflowCombinedApi()

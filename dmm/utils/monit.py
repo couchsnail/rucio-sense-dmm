@@ -51,7 +51,7 @@ def fts_get_val_from_response(response):
     """Extract desired value from typical location in Prometheus response"""
     return response["hits"]["hits"][0]["_source"]["data"]
 
-def fts_submit_job_query(job_id):
+def fts_submit_job_query(rule_id):
     fts_host = config_get("fts-monit", "host")
     fts_token = config_get("fts-monit", "auth_token")
     headers = {"Authorization": f"Bearer {fts_token}", "Content-Type": "application/json"}
@@ -76,3 +76,6 @@ def fts_submit_job_query(job_id):
     response = requests.get(query_addr, data=data_string, headers=headers).json()
     timestamps = fts_get_val_from_response(response)
     return timestamps
+
+if __name__ == __main__:
+    print(fts_submit_job_query("d8b4b3f6-ff2f-11eb-9e7c-0a580a81001b"))

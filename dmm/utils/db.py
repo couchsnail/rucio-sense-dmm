@@ -21,7 +21,8 @@ def get_request_cursor(session=None):
 def mark_requests(reqs, status, session=None):
     for req in reqs:
         req.update({
-            "transfer_status": status
+            "transfer_status": status,
+            "fts_modified": False
         })
         logging.debug(f"Marked {req.rule_id} as {status}")
 
@@ -37,6 +38,18 @@ def update_priority(req, priority, session=None):
         "modified_priority": priority
     })
     logging.debug(f"Updated priority to {priority} for {req.rule_id}")
+
+def update_sense_circuit_status(req, status, session=None):
+    req.update({
+        "sense_circuit_status": status
+    })
+    logging.debug(f"Updated sense_circuit_status to {status} for {req.rule_id}")
+
+def mark_fts_modified(req, session=None):
+    req.update({
+        "fts_modified": True
+    })
+    logging.debug(f"Marked fts_modified for {req.rule_id}")
 
 # Sites
 def get_site(site_name, attr=None, session=None):

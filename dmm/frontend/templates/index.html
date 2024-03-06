@@ -1,7 +1,7 @@
-<!-- FILEPATH: /home/users/aaarora/ci/dmm/dmm/frontend/templates/index.html -->
 <!DOCTYPE html>
 <html>
 <head>
+    <meta http-equiv="refresh" content="5">
     <title>DMM Status</title>
     <style>
         body {
@@ -33,7 +33,7 @@
         
         th, td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 4px;
             text-align: center;
         }
         
@@ -66,15 +66,16 @@
             <tr>
                 <th>Rule ID</th>
                 <th>Status</th>
-                <th>Source Site</th>
-                <th>Source IPv6 Range</th>
-                <th>Source Hostname</th>
-                <th>Destination Site</th>
-                <th>Destination IPv6 Range</th>
-                <th>Destination Hostname</th>
+                <th>Src Site</th>
+                <th>Src IPv6 Range</th>
+                <th>Src Hostname</th>
+                <th>Dst Site</th>
+                <th>Dst IPv6 Range</th>
+                <th>Dst Hostname</th>
                 <th>Priority</th>
                 <th>Bandwidth</th>
                 <th>Sense UUID</th>
+                <th>Circuit Status</th>
             </tr>
         </thead>
         <tbody>
@@ -91,6 +92,7 @@
                 <td>{{ row[8] }}</td>
                 <td>{{ row[11] }}</td>
                 <td>{{ row[12] }}</td>
+                <td>{{ row[13] }}</td>
             </tr>
             {% endfor %}
         </tbody>

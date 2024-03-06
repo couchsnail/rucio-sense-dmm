@@ -42,14 +42,13 @@ def modify_link_config(req, max_active, min_active):
     try:
         response = requests.post(url + "/config/links", headers=headers, cert=cert, verify=capath, data=data)
         logging.info(f"FTS link config modified, response: {response}")
-        return response
+        return (response.status_code == 200)
     except:
         logging.exception("Error while modifying FTS link config")
         return None
     
 def modify_se_config(req, max_inbound, max_outbound):
     url, cert, capath, headers, src_url_no_port, dst_url_no_port = setup_request(req)
-
     data = {
         src_url_no_port: {
             "se_info": {
@@ -84,7 +83,7 @@ def modify_se_config(req, max_inbound, max_outbound):
         data = json.dumps(data)
         response = requests.post(url + "/config/se", headers=headers, cert=cert, verify=capath, data=data)
         logging.info(f"FTS storage config modified, response: {response}")
-        return response
+        return (response.status_code == 200)
     except: 
         logging.exception("Error while modifying FTS storage config")
         return None

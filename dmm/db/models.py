@@ -46,6 +46,8 @@ class Request(BASE, ModelBase):
     max_bandwidth = Column(Float())
     bandwidth = Column(Float())
     sense_uuid = Column(String(255))
+    sense_circuit_status = Column(String(255))
+    fts_modified = Column(Boolean())
 
     def __init__(self, **kwargs):
         super(Request, self).__init__(**kwargs)
@@ -63,7 +65,7 @@ class Site(BASE, ModelBase):
         site_info = json.loads(site_info)
         self.sense_uri = site_info["domain_uri"]
         if not self.port_capacity:
-            self.port_capacity = float(site_info["peer_points"][0]["port_capacity"])
+            self.port_capacity = 100000 #float(site_info["peer_points"][0]["port_capacity"]) * 0.8
         self.query_url = site_info["domain_url"]
 
 class Endpoint(BASE, ModelBase):

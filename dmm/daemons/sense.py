@@ -2,11 +2,17 @@ import logging
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
-from dmm.utils.db import get_requests, mark_requests, get_site, free_endpoint
-from dmm.utils.fts import modify_link_config, modify_se_config
+from dmm.utils.db import get_requests, mark_requests, get_site, free_endpoint, update_sense_circuit_status
 import dmm.utils.sense as sense
 
 from dmm.db.session import databased
+
+@databased
+def status_updater(session=None):
+    reqs_provisioned = [req for req in get_requests(status=["PROVISIONED"], session=session)]
+    for req in reqs_provisioned:
+        status = sense.get_sense_circuit_status(req.sense_uuid)
+        update_sense_circuit_status(req, status, session=session)
 
 @databased
 def stager(session=None):
@@ -43,16 +49,6 @@ def provision(session=None):
                 alias=req.rule_id
             )
             mark_requests([req], "PROVISIONED", session)
-            num_active = {
-                "T2_US_SDSC": {
-                    "T2_US_Caltech_Test" : 140
-                },
-                "T1_US_FNAL": {
-                    "T2_US_Caltech_Test" : 2000
-                }
-            }
-            modify_link_config(req, max_active=num_active[req.src_site][req.dst_site], min_active=num_active[req.src_site][req.dst_site])
-            modify_se_config(req, max_inbound=num_active, max_outbound=num_active)
         except:
             logging.error(f"Failed to provision link for {req.rule_id}, will try again")
     reqs_decided = [req for req in get_requests(status=["DECIDED"], session=session)]
