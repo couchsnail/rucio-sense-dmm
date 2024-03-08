@@ -4,6 +4,7 @@ docker build . --network host -t aaarora/dmm-dev
 
 docker run -it --rm \
 --network host \
+--add-host sense-o-dev.es.net:198.124.151.6 \
 -v $HOME/private/dmm.cfg:/opt/dmm/dmm.cfg \
 -v $HOME/private/rucio.cfg:/opt/rucio/etc/rucio.cfg \
 -v $HOME/private/certs/rucio-sense/:/opt/certs \

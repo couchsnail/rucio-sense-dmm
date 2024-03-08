@@ -37,8 +37,10 @@ def decider(session=None):
         max_node = sorted(network_graph_copy.nodes, key=total_priority_filter, reverse=True)[0]
         total_priority = sum(rule['priority'] for rules in network_graph_copy[max_node].values() for rule in rules.values())
         
+        min_capacity = min(network_graph_copy.nodes[node]["remaining_capacity"] for node in network_graph_copy.nodes)
+        
         for src, dst, key, data in network_graph_copy.edges(max_node, data=True, keys=True):
-            src_capacity = network_graph_copy.nodes[src]["remaining_capacity"]
+            src_capacity = min_capacity
             priority = data["priority"]
 
             updated_bandwidth = (src_capacity / total_priority) * priority
