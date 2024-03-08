@@ -18,28 +18,28 @@ spec:
         hostnames:
         - "sense-o-dev.es.net"
       containers:
-      # - name: dmm
-      #   image: aaarora/dmm:latest
-      #   ports:
-      #   - containerPort: 80
-      #   volumeMounts:
-      #   - name: dmm-config
-      #     mountPath: /opt/dmm/dmm.cfg
-      #     subPath: dmm.cfg
-      #   - name: sense-config
-      #     mountPath: /root/.sense-o-auth.yaml
-      #     subPath: .sense-o-auth.yaml
-      #   - name: rucio-client-config
-      #     mountPath: /opt/rucio/etc/rucio.cfg
-      #     subPath: rucio.cfg
-      #   - name: ca-volume
-      #     mountPath: /etc/grid-security/certificates/
-      #   - name: certs
-      #     mountPath: /opt/certs/key.pem
-      #     subPath: key.pem
-      #   - name: certs
-      #     mountPath: /opt/certs/cert.pem
-      #     subPath: cert.pem
+      - name: dmm
+        image: aaarora/dmm:latest
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: dmm-config
+          mountPath: /opt/dmm/dmm.cfg
+          subPath: dmm.cfg
+        - name: sense-config
+          mountPath: /root/.sense-o-auth.yaml
+          subPath: .sense-o-auth.yaml
+        - name: rucio-client-config
+          mountPath: /opt/rucio/etc/rucio.cfg
+          subPath: rucio.cfg
+        - name: ca-volume
+          mountPath: /etc/grid-security/certificates/
+        - name: certs
+          mountPath: /opt/certs/key.pem
+          subPath: key.pem
+        - name: certs
+          mountPath: /opt/certs/cert.pem
+          subPath: cert.pem
       - name: postgres
         image: postgres
         env:
