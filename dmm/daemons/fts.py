@@ -18,7 +18,7 @@ def fts_modifier(session=None):
     reqs_new = [req for req in get_requests(status=["ALLOCATED"], session=session)]
     for allocated_req in reqs_new:
         if not allocated_req.fts_modified:
-            num_streams = num_active[allocated_req.src_site][allocated_req.dst_site]
+            num_streams = 20
             link_modified = modify_link_config(allocated_req, max_active=num_streams, min_active=num_streams)
             se_modified = modify_se_config(allocated_req, max_inbound=num_streams, max_outbound=num_streams)
             if link_modified and se_modified:
