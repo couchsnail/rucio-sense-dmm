@@ -182,9 +182,8 @@ def modify_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, 
     workflow_api = WorkflowCombinedApi()
     workflow_api.si_uuid = instance_uuid
     status = get_sense_circuit_status(instance_uuid=instance_uuid, workflow_api=workflow_api)
-    if "READY" not in status:
-        logging.debug(f"Request {instance_uuid} not in ready status, will try to modify again")
-        raise AssertionError(f"Request {instance_uuid} not in compiled status, will try to modify again")
+    if not re.match(r"(CREATE|MODIFY|REINSTATE) - READY$", status):
+        raise ValueError(f"Cannot cancel an instance in status '{status}', will try to cancel again")
     intent = {
         "service_profile_uuid": get_profile_uuid(),
         "queries": [
@@ -205,8 +204,6 @@ def modify_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, 
     if alias:
         intent["alias"] = alias
     response = workflow_api.instance_modify(json.dumps(intent), sync="true")
-    if not good_response(response):
-        raise ValueError(f"SENSE query failed for {instance_uuid}")
     return response
 
 def cancel_link(instance_uuid):

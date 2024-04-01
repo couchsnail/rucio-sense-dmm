@@ -1,6 +1,5 @@
 from flask import Flask, Response, render_template
 import logging
-import time
 import json
 
 from dmm.db.session import databased
@@ -11,10 +10,7 @@ frontend_app = Flask(__name__, template_folder="templates")
 @frontend_app.route("/query/<rule_id>", methods=["GET"])
 @databased
 def handle_client(rule_id, session=None):
-    retry_interval = 5
-    retry_timeout = 60
     logging.info(f"Received request for rule_id: {rule_id}")
-    start_time = time.time()
     try:
         req = get_request_from_id(rule_id, session=session)
         if req and req.src_url and req.dst_url:
@@ -22,14 +18,6 @@ def handle_client(rule_id, session=None):
             response = Response(result, content_type="application/json")
             response.headers.add("Content-Type", "application/json")
             return response
-        elif req:
-            current_time = time.time()
-            if current_time - start_time > retry_timeout:
-                response = Response("", status=404)
-                response.headers.add("Content-Type", "text/plain")
-                return response
-            else:
-                time.sleep(retry_interval)
         else:
             response = Response("", status=404)
             response.headers.add("Content-Type", "text/plain")

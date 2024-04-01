@@ -69,9 +69,10 @@ def sense_modifier(session=None):
                 int(req.bandwidth),
                 alias=req.rule_id
             )
+        except Exception as e:
+            logging.error(f"Failed to modify link for {req.rule_id} : {e}, will try again")
+        finally:
             mark_requests([req], "PROVISIONED", session)
-        except:
-            logging.error(f"Failed to modify link for {req.rule_id}, will try again")
     reqs_stale = [req for req in get_requests(status=["STALE"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_stale:
