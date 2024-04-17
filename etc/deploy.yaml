@@ -13,10 +13,6 @@ spec:
         app: dmm
     spec:
       hostNetwork: true
-      hostAliases:
-      - ip: "198.124.151.6"
-        hostnames:
-        - "sense-o-dev.es.net"
       containers:
       - name: dmm
         image: aaarora/dmm:latest

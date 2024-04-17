@@ -1,11 +1,14 @@
 from flask import Flask, Response, render_template
 import logging
 import json
+import os
 
 from dmm.db.session import databased
 from dmm.utils.db import get_request_from_id, get_request_cursor
 
-frontend_app = Flask(__name__, template_folder="templates")
+current_directory = os.path.dirname(os.path.abspath(__file__))
+templates_folder = os.path.join(current_directory, "templates")
+frontend_app = Flask(__name__, template_folder=templates_folder)
 
 @frontend_app.route("/query/<rule_id>", methods=["GET"])
 @databased

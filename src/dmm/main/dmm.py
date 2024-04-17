@@ -1,9 +1,17 @@
 import logging
+import sys
+
+logging.basicConfig(
+    format="(%(threadName)s) [%(asctime)s] %(levelname)s: %(message)s",
+    datefmt="%m-%d-%Y %H:%M:%S %p",
+    level=logging.DEBUG,
+    handlers=[logging.FileHandler(filename="dmm.log"), logging.StreamHandler(sys.stdout)]
+)
+
 from multiprocessing import Lock
 from waitress import serve
 
 from rucio.client import Client
-
 from dmm.utils.config import config_get, config_get_int
 from dmm.main.orchestrator import fork
 
@@ -73,3 +81,9 @@ class DMM:
             fork(self.rucio_daemon_frequency, self.lock, rucio_daemons)
 
         serve(frontend_app, port=self.port, host=self.host)
+
+def main():
+    logging.info("Starting DMM")
+
+    dmm = DMM()
+    dmm.start()

@@ -1,10 +1,10 @@
 import psycopg2
 import argparse
 
-HOST = ""
-DBNAME = ""
-USER = ""
-PASSWORD = ""
+HOST = "nrp-01.nrp-nautilus.io"
+DBNAME = "dmm"
+USER = "dmm"
+PASSWORD = "dmm"
 
 def add_rule(rule_id, src_site, dst_site, priority):
     conn = psycopg2.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
@@ -26,6 +26,13 @@ def finish_rule(rule_id):
     cur.execute(f"UPDATE requests SET transfer_status='FINISHED' WHERE rule_id='{rule_id}';")
     conn.commit()
     conn.close()
+
+def delete_rule(rule_id):
+    conn = psycopg2.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
+    cur = conn.cursor()
+    cur.execute(f"DELETE FROM requests WHERE rule_id='{rule_id}';")
+    conn.commit()
+    conn.close()  
 
 
 if __name__ == "__main__":
@@ -55,6 +62,12 @@ if __name__ == "__main__":
             exit(1)
         finish_rule(args.rule_id)
         print(f"Rule {args.rule_id} marked as FINISHED")
+    elif args.action == "delete":
+        if args.rule_id is None:
+            print("Missing required arguments: rule_id")
+            exit(1)
+        delete_rule(args.rule_id)
+        print(f"Rule {args.rule_id} deleted")
     else:
         print("Invalid action")
         exit(1)

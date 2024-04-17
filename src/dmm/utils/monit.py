@@ -52,30 +52,29 @@ def fts_get_val_from_response(response):
     return response["hits"]["hits"][0]["_source"]["data"]
 
 def fts_submit_job_query(rule_id):
-    fts_host = config_get("fts-monit", "host")
-    fts_token = config_get("fts-monit", "auth_token")
+    fts_host = config_get("fts", "monit_host")
+    fts_token = config_get("fts", "monit_auth_token")
     headers = {"Authorization": f"Bearer {fts_token}", "Content-Type": "application/json"}
     endpoint = "api/datasources/proxy/9233/monit_prod_fts_enr_complete*/_search"
     query_addr = f"{fts_host}/{endpoint}"
     data = {
-        "size":1,
+        "size": 2,
         "query":{
             "bool":{
-                "filter":[
-                    {"query_string":{
-                        "analyze_wildcard":"true",
-                        "query":f"data.job_id:{job_id}"
-                        }
+                "filter":[{
+                    "query_string": {
+                        "analyze_wildcard": "true",
+                        "query": f"data.file_metadata.rule_id:{rule_id}"
                     }
-                ]
+                }]
             }
         },
-        "_source": ["data.tr_timestamp_start", "data.tr_timestamp_complete"]
+        # "_source": ["data.tr_timestamp_start", "data.tr_timestamp_complete"]
     }
     data_string = json.dumps(data)
     response = requests.get(query_addr, data=data_string, headers=headers).json()
     timestamps = fts_get_val_from_response(response)
     return timestamps
 
-if __name__ == __main__:
-    print(fts_submit_job_query("d8b4b3f6-ff2f-11eb-9e7c-0a580a81001b"))
+if __name__ == "__main__":
+    print(fts_submit_job_query("61b9e48e0de94ad394a6fe49d8560e5f"))
