@@ -84,6 +84,5 @@ class DMM:
 
 def main():
     logging.info("Starting DMM")
-
     dmm = DMM()
     dmm.start()

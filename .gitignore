@@ -3,6 +3,7 @@ dmm.log
 dmm.cfg
 dmm.db
 Dockerfile
+!*/Dockerfile
 dist/
 src/sense_dmm.egg-info
 build/
