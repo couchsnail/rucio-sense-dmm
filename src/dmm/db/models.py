@@ -65,7 +65,7 @@ class Site(BASE, ModelBase):
         site_info = json.loads(site_info)
         self.sense_uri = site_info["domain_uri"]
         if not self.port_capacity:
-            self.port_capacity = float(site_info["peer_points"][0]["port_capacity"]) * 0.8
+            self.port_capacity = 350000 #float(site_info["peer_points"][0]["port_capacity"])
         self.query_url = site_info["domain_url"]
 
 class Endpoint(BASE, ModelBase):

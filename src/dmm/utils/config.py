@@ -6,7 +6,7 @@ __CONFIG = None
 
 class Config:
     def __init__(self):
-        self.parser = ConfigParser.ConfigParser()
+        self.parser = ConfigParser.ConfigParser(delimiters=('='))
         if "DMM_CONFIG" in os.environ:
             logging.debug("reading config defined in env")
             self.configfile = os.environ["DMM_CONFIG"]

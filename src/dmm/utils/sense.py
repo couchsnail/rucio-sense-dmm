@@ -9,14 +9,6 @@ from sense.client.workflow_combined_api import WorkflowCombinedApi
 from sense.client.discover_api import DiscoverApi
 from sense.client.address_api import AddressApi
 
-# Testing Hack
-VLAN_MAP = {
-        "urn:ogf:network:fnal.gov:2023" + "-" + "urn:ogf:network:ultralight.org:2013" : "3610-3612",
-        "urn:ogf:network:ultralight.org:2013" + "-" + "urn:ogf:network:fnal.gov:2023" : "3610-3612",
-        "urn:ogf:network:nrp-nautilus.io:2020" + "-" + "urn:ogf:network:ultralight.org:2013" : "3985-3989",
-        "urn:ogf:network:ultralight.org:2013" + "-" + "urn:ogf:network:nrp-nautilus.io:2020" : "3985-3989"
-    }
-
 PROFILE_UUID = ""
 
 def get_profile_uuid():
@@ -123,8 +115,8 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
                     {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri},
                     {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
-                    {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
+                    {"data.connections[0].terminals[0].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")},
+                    {"data.connections[0].terminals[1].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")}
                 ]
             },
             {"ask": "maximum-bandwidth", "options": [{"name": "Connection 1"}]}
@@ -163,8 +155,8 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
                     {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri},
                     {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
-                    {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
+                    {"data.connections[0].terminals[0].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")},
+                    {"data.connections[0].terminals[1].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")}
                 ]
             }
         ]
@@ -195,8 +187,8 @@ def modify_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, 
                     {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri},
                     {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[0].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}, 
-                    {"data.connections[0].terminals[1].vlan_tag": VLAN_MAP[f"{src_uri}-{dst_uri}"]}
+                    {"data.connections[0].terminals[0].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")},
+                    {"data.connections[0].terminals[1].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")}
                 ]
             }
         ]

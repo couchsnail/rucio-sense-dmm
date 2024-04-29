@@ -1,5 +1,3 @@
-<img src="assets/dmm.png" width=164/>
-
 # DMM
 Data Movement Manager (DMM) for the Rucio-SENSE interoperation prototype.
 

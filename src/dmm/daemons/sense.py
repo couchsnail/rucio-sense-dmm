@@ -28,8 +28,8 @@ def stager(session=None):
             )
             req.update({"sense_uuid": sense_uuid, "max_bandwidth": max_bandwidth})
             mark_requests([req], "STAGED", session)
-        except:
-            logging.error(f"Failed to stage link for {req.rule_id}, will try again")
+        except Exception as e:
+            logging.error(f"Failed to stage link for {req.rule_id}, {e}, will try again")
     reqs_init = [req for req in get_requests(status=["ALLOCATED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_init:
@@ -49,8 +49,8 @@ def provision(session=None):
                 alias=req.rule_id
             )
             mark_requests([req], "PROVISIONED", session)
-        except:
-            logging.error(f"Failed to provision link for {req.rule_id}, will try again")
+        except Exception as e:
+            logging.error(f"Failed to provision link for {req.rule_id}, {e}, will try again")
     reqs_decided = [req for req in get_requests(status=["DECIDED"], session=session)]
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_decided:
@@ -70,7 +70,7 @@ def sense_modifier(session=None):
                 alias=req.rule_id
             )
         except Exception as e:
-            logging.error(f"Failed to modify link for {req.rule_id} : {e}, will try again")
+            logging.error(f"Failed to modify link for {req.rule_id}, {e}, will try again")
         finally:
             mark_requests([req], "PROVISIONED", session)
     reqs_stale = [req for req in get_requests(status=["STALE"], session=session)]
@@ -88,8 +88,8 @@ def canceller(session=None):
                 free_endpoint(req.src_url, session=session)
                 free_endpoint(req.dst_url, session=session)
                 mark_requests([req], "CANCELED", session=session)
-            except:
-                logging.error(f"Failed to cancel link for {req.rule_id}, will try again")
+            except Exception as e:
+                logging.error(f"Failed to cancel link for {req.rule_id}, {e}, will try again")
 
 @databased
 def deleter(session=None):
@@ -98,5 +98,5 @@ def deleter(session=None):
         try:
             sense.delete_link(req.sense_uuid)
             mark_requests([req], "DELETED", session=session)
-        except:
-            logging.error(f"Failed to delete link for {req.rule_id}, will try again")
+        except Exception as e:
+            logging.error(f"Failed to delete link for {req.rule_id}, {e}, will try again")

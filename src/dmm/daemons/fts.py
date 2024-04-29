@@ -3,15 +3,7 @@ import re
 from dmm.db.session import databased
 from dmm.utils.db import get_requests, mark_fts_modified
 from dmm.utils.fts import modify_link_config, modify_se_config
-
-num_active = {
-    "T2_US_SDSC": {
-        "T2_US_Caltech_Test" : 200
-    },
-    "T1_US_FNAL": {
-        "T2_US_Caltech_Test" : 1600
-    }
-}
+from dmm.utils.config import config_get_int
 
 @databased
 def fts_modifier(session=None):
@@ -27,7 +19,7 @@ def fts_modifier(session=None):
     reqs = [req for req in get_requests(status=["PROVISIONED"], session=session)]
     for provisioned_req in reqs:
         if not provisioned_req.fts_modified and re.match(r"(CREATE|MODIFY|REINSTATE) - READY$", provisioned_req.sense_circuit_status):
-            num_streams = num_active[provisioned_req.src_site][provisioned_req.dst_site]
+            num_streams = config_get_int("fts-streams", f"{provisioned_req.src_site}-{provisioned_req.dst_site}", 200)
             link_modified = modify_link_config(provisioned_req, max_active=num_streams, min_active=num_streams)
             se_modified = modify_se_config(provisioned_req, max_inbound=num_streams, max_outbound=num_streams)
             if link_modified and se_modified:
