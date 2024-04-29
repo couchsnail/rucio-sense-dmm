@@ -27,7 +27,7 @@ def get_sense_circuit_status(instance_uuid, workflow_api=None):
     workflow_api.si_uuid = instance_uuid
     return workflow_api.instance_get_status(si_uuid=instance_uuid)
 
-def get_uri(rse_name, regex=".*?"):
+def get_uri(rse_name):
     try:
         logging.debug(f"Getting URI for {rse_name}")
         discover_api = DiscoverApi()
@@ -37,9 +37,9 @@ def get_uri(rse_name, regex=".*?"):
         response = json.loads(response)
         if not response["results"]:
             raise ValueError(f"No results for {rse_name}")
-        matched_results = [result for result in response["results"] if re.search(regex, result["name/tag/value"])]
+        matched_results = [result for result in response["results"] if result["name/tag/value"] == rse_name]
         if len(matched_results) == 0:
-            raise ValueError(f"No results matched {regex}")
+            raise ValueError(f"No results matched")
         full_uri = matched_results[0]["resource"]
         root_uri = discover_api.discover_lookup_rooturi_get(full_uri)
         if not good_response(root_uri):
