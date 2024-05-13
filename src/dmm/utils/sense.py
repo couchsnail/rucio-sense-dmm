@@ -25,7 +25,7 @@ def get_sense_circuit_status(instance_uuid, workflow_api=None):
     if not workflow_api:
         workflow_api = WorkflowCombinedApi()
     workflow_api.si_uuid = instance_uuid
-    return workflow_api.instance_get_status(si_uuid=instance_uuid)
+    return workflow_api.instance_get_status(si_uuid=instance_uuid) or "UNKNOWN"
 
 def get_uri(rse_name):
     try:
@@ -101,7 +101,7 @@ def free_allocation(sitename, alloc_name):
         raise ValueError(f"Freeing allocation failed for {sitename} and {alloc_name}")
 ############################################################################################################
 
-def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias=""):
+def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, vlan_range, instance_uuid="", alias=""):
     logging.info(f"staging sense link for request {alias}")
     workflow_api = WorkflowCombinedApi()
     workflow_api.instance_new() if instance_uuid == "" else setattr(workflow_api, "si_uuid", instance_uuid)
@@ -115,8 +115,8 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
                     {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri},
                     {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[0].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")},
-                    {"data.connections[0].terminals[1].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")}
+                    {"data.connections[0].terminals[0].vlan_tag": vlan_range},
+                    {"data.connections[0].terminals[1].vlan_tag": vlan_range}
                 ]
             },
             {"ask": "maximum-bandwidth", "options": [{"name": "Connection 1"}]}
@@ -136,7 +136,7 @@ def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, instance_uuid="", alias="")
                 raise ValueError(f"SENSE query failed for {instance_uuid}")
             return response["service_uuid"], float(result["bandwidth"])
 
-def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, alias=""):
+def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, vlan_range, bandwidth, alias=""):
     logging.info(f"provisioning sense link for request {alias} with bandwidth {bandwidth / 1000} G")
     workflow_api = WorkflowCombinedApi()
     workflow_api.si_uuid = instance_uuid
@@ -155,8 +155,8 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
                     {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri},
                     {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[0].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")},
-                    {"data.connections[0].terminals[1].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")}
+                    {"data.connections[0].terminals[0].vlan_tag": vlan_range},
+                    {"data.connections[0].terminals[1].vlan_tag": vlan_range}
                 ]
             }
         ]
@@ -169,7 +169,7 @@ def provision_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidt
     workflow_api.instance_operate("provision", sync="true")
     return response
 
-def modify_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, alias=""):
+def modify_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, vlan_range, bandwidth, alias=""):
     logging.info(f"modifying sense link for request {alias} with new bandwidth {bandwidth}")
     workflow_api = WorkflowCombinedApi()
     workflow_api.si_uuid = instance_uuid
@@ -187,8 +187,8 @@ def modify_link(instance_uuid, src_uri, dst_uri, src_ipv6, dst_ipv6, bandwidth, 
                     {"data.connections[0].terminals[0].ipv6_prefix_list": src_ipv6},
                     {"data.connections[0].terminals[1].uri": dst_uri},
                     {"data.connections[0].terminals[1].ipv6_prefix_list": dst_ipv6},
-                    {"data.connections[0].terminals[0].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")},
-                    {"data.connections[0].terminals[1].vlan_tag": config_get("vlan-tags", f"{src_uri}-{dst_uri}", default="any")}
+                    {"data.connections[0].terminals[0].vlan_tag": vlan_range},
+                    {"data.connections[0].terminals[1].vlan_tag": vlan_range}
                 ]
             }
         ]

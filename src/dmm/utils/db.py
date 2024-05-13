@@ -1,8 +1,7 @@
 import logging
-from sqlalchemy import text
+from sqlalchemy import text, or_
 
-from dmm.db.models import Request, Site, Endpoint
-from dmm.utils.siterm import get_siterm_list_of_endpoints
+from dmm.db.models import Request, Site, Endpoint, Mesh
 
 # Requests
 def get_request_from_id(rule_id, session=None):
@@ -57,23 +56,7 @@ def get_site(site_name, attr=None, session=None):
         query = session.query(Site).filter(Site.name == site_name).first()
         return getattr(query, attr)
     else:
-        return session.query(Site).filter(Site.name == site_name).first()
-
-def update_site(site, certs, session=None):
-    site_exists = get_site(site, session=session)
-    if not site_exists:
-        site_ = Site(name=site)
-        site_.save(session=session)
-    else:
-        site_ = site_exists
-    for block, hostname in get_siterm_list_of_endpoints(site=site_, certs=certs):
-        if get_endpoint(hostname, session=session) is None:
-            new_endpoint = Endpoint(site=site_.name,
-                                    ip_block=block,
-                                    hostname=hostname,
-                                    in_use=False
-                                    )
-            new_endpoint.save(session=session)
+        return session.query(Site).filter(Site.name == site_name).first()    
 
 # Endpoints
 def get_all_endpoints(session=None):
@@ -85,7 +68,7 @@ def get_endpoint(hostname, session=None):
     return endpoint
 
 def get_unused_endpoint(site, session=None):
-    endpoint = session.query(Endpoint).filter(Endpoint.site == site, Endpoint.in_use == False).first()
+    endpoint = session.query(Endpoint).filter(Endpoint.site_name == site, Endpoint.in_use == False).first()
     endpoint.update({
         "in_use": True
     })
@@ -97,3 +80,22 @@ def free_endpoint(hostname, session=None):
         "in_use": False
     })
     return
+
+def check_endpoint_truly_in_use(endpoint, session=None):
+    return session.query(Request).filter(or_(Request.src_url == endpoint.hostname, Request.dst_url == endpoint.hostname)).first()
+
+# Mesh
+def get_vlan_range(site_1, site_2, session=None):
+    mesh = session.query(Mesh).filter(Mesh.site_1 == site_1, Mesh.site_2 == site_2).first() or session.query(Mesh).filter(Mesh.site_1 == site_2, Mesh.site_2 == site_1).first()
+    vlan_range_start = mesh.vlan_range_start
+    vlan_range_end = mesh.vlan_range_end
+    if vlan_range_start == -1 or vlan_range_end == -1:
+        return "any"
+    else:
+        return f"{vlan_range_start}-{vlan_range_end}"
+
+def get_max_bandwidth(site, session=None):
+    mesh = session.query(Mesh).filter(or_(Mesh.site_1 == site, Mesh.site_2 == site)).all()
+    bandwidths = {m.max_bandwidth for m in mesh}
+    return max(bandwidths) 
+    

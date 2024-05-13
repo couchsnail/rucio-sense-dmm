@@ -79,9 +79,11 @@ class DMM:
                 finisher: {"client": self.rucio_client}
             }
             fork(self.rucio_daemon_frequency, self.lock, rucio_daemons)
-
-        serve(frontend_app, port=self.port, host=self.host)
-
+        
+        try:
+            serve(frontend_app, port=self.port, host=self.host)
+        except Exception as e:
+            serve(frontend_app, port=8081, host=self.host)
 def main():
     logging.info("Starting DMM")
     dmm = DMM()

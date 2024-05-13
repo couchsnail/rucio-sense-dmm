@@ -1,34 +1,34 @@
-import psycopg2
+import psycopg
 import argparse
 
-HOST = "nrp-01.nrp-nautilus.io"
+HOST = "localhost"
 DBNAME = "dmm"
 USER = "dmm"
 PASSWORD = "dmm"
 
 def add_rule(rule_id, src_site, dst_site, priority):
-    conn = psycopg2.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
+    conn = psycopg.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
     cur = conn.cursor()
     cur.execute(f"INSERT INTO requests (rule_id, src_site, dst_site, priority, transfer_status) VALUES ('{rule_id}', '{src_site}', '{dst_site}', '{priority}', 'INIT');")
     conn.commit()
     conn.close()
 
 def modify_rule(rule_id, priority):
-    conn = psycopg2.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
+    conn = psycopg.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
     cur = conn.cursor()
     cur.execute(f"UPDATE requests SET priority='{priority}', modified_priority='{priority}', transfer_status='MODIFIED' WHERE rule_id='{rule_id}';")
     conn.commit()
     conn.close()
 
 def finish_rule(rule_id):
-    conn = psycopg2.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
+    conn = psycopg.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
     cur = conn.cursor()
     cur.execute(f"UPDATE requests SET transfer_status='FINISHED' WHERE rule_id='{rule_id}';")
     conn.commit()
     conn.close()
 
 def delete_rule(rule_id):
-    conn = psycopg2.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
+    conn = psycopg.connect(f"host={HOST} dbname={DBNAME} user={USER} password={PASSWORD}")
     cur = conn.cursor()
     cur.execute(f"DELETE FROM requests WHERE rule_id='{rule_id}';")
     conn.commit()

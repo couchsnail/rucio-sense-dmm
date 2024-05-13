@@ -1,10 +1,9 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.orm import relationship
 from datetime import datetime
-import json
 
 from dmm.db.session import get_engine
-from dmm.utils.sense import get_site_info
 
 BASE = declarative_base()
 
@@ -22,6 +21,7 @@ class ModelBase(object):
     def save(self, session=None):
         """Save this object"""
         session.add(self)
+        session.commit()
     def delete(self, session=None):
         """Delete this object"""
         session.delete(self)
@@ -56,22 +56,17 @@ class Site(BASE, ModelBase):
     __tablename__ = "sites"
     name = Column(String(255), primary_key=True)
     sense_uri = Column(String(255))
-    port_capacity = Column(Integer())
     query_url = Column(String(255))
+    endpoints = relationship('Endpoint', back_populates='site', cascade='all, delete-orphan')
 
     def __init__(self, **kwargs):
         super(Site, self).__init__(**kwargs)
-        site_info = get_site_info(self.name)
-        site_info = json.loads(site_info)
-        self.sense_uri = site_info["domain_uri"]
-        if not self.port_capacity:
-            self.port_capacity = 350000 #float(site_info["peer_points"][0]["port_capacity"])
-        self.query_url = site_info["domain_url"]
 
 class Endpoint(BASE, ModelBase):
     __tablename__ = "endpoints"
     id = Column(Integer(), autoincrement=True, primary_key=True)
-    site = Column(String(255))
+    site = relationship('Site', back_populates='endpoints')
+    site_name = Column(String(255), ForeignKey('sites.name'))
     ip_block = Column(String(255))
     hostname = Column(String(255))
     in_use = Column(Boolean())
@@ -79,8 +74,22 @@ class Endpoint(BASE, ModelBase):
     def __init__(self, **kwargs):
         super(Endpoint, self).__init__(**kwargs)
 
+class Mesh(BASE, ModelBase):
+    __tablename__ = 'mesh'
+    id = Column(Integer, autoincrement=True, primary_key=True)
+    site_1 = Column(String(255), ForeignKey('sites.name'))
+    site_2 = Column(String(255), ForeignKey('sites.name'))
+    vlan_range_start = Column(Integer())
+    vlan_range_end = Column(Integer())
+    max_bandwidth = Column(Integer())
+
+    # Define relationships
+    site1 = relationship("Site", foreign_keys=[site_1])
+    site2 = relationship("Site", foreign_keys=[site_2])
+
+    def __init__(self, **kwargs):
+        super(Mesh, self).__init__(**kwargs)
+
 # Create the tables if don't exist when module first imported.
 engine=get_engine()
-Request.__table__.create(bind=engine, checkfirst=True)
-Site.__table__.create(bind=engine, checkfirst=True)
-Endpoint.__table__.create(bind=engine, checkfirst=True)
+BASE.metadata.create_all(bind=engine, checkfirst=True)

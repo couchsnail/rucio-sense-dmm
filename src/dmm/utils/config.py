@@ -31,6 +31,7 @@ def get_config():
 
 def config_get(section, option, default=None, extract_function=ConfigParser.ConfigParser.get):
     global __CONFIG
+    logging.debug(f"Getting config option {option} from section {section}")
     try:
         return extract_function(get_config(), section, option)
     except ConfigParser.NoOptionError:

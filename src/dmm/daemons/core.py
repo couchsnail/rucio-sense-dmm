@@ -2,19 +2,19 @@ import copy
 from networkx import MultiGraph
 
 from dmm.db.session import databased
-from dmm.utils.db import get_requests, mark_requests, update_bandwidth, get_site, get_unused_endpoint
+from dmm.utils.db import get_requests, mark_requests, update_bandwidth, get_site, get_unused_endpoint, get_max_bandwidth
 
 @databased
 def decider(session=None):
     network_graph = MultiGraph()
     # Get all active requests
-    reqs =  get_requests(status=["STAGED", "ALLOCATED", "MODIFIED", "DECIDED", "STALE", "PROVISIONED", "FINISHED", "CANCELED"], session=session)
+    reqs = get_requests(status=["STAGED", "ALLOCATED", "MODIFIED", "DECIDED", "STALE", "PROVISIONED", "FINISHED", "CANCELED"], session=session)
     for req in reqs:
-            src_port_capacity = get_site(req.src_site, attr="port_capacity", session=session)
-            network_graph.add_node(req.src_site, port_capacity=src_port_capacity, remaining_capacity=src_port_capacity)
-            dst_port_capacity = get_site(req.dst_site, attr="port_capacity", session=session)
-            network_graph.add_node(req.dst_site, port_capacity=dst_port_capacity, remaining_capacity=dst_port_capacity)
-            network_graph.add_edge(req.src_site, req.dst_site, rule_id=req.rule_id, priority=req.priority, bandwidth=req.bandwidth)
+        src_port_capacity = get_max_bandwidth(req.src_site, session=session)
+        network_graph.add_node(req.src_site, port_capacity=src_port_capacity, remaining_capacity=src_port_capacity)
+        dst_port_capacity = get_max_bandwidth(req.dst_site, session=session)
+        network_graph.add_node(req.dst_site, port_capacity=dst_port_capacity, remaining_capacity=dst_port_capacity)
+        network_graph.add_edge(req.src_site, req.dst_site, rule_id=req.rule_id, priority=req.priority, bandwidth=req.bandwidth)
     
     # exit if graph is empty
     if not network_graph.nodes:
@@ -35,18 +35,24 @@ def decider(session=None):
     while len(network_graph_copy.nodes) > 1:
         total_priority_filter = lambda x : sum(rule['priority'] for rules in network_graph_copy[x].values() for rule in rules.values())
         max_node = sorted(network_graph_copy.nodes, key=total_priority_filter, reverse=True)[0]
-        total_priority = sum(rule['priority'] for rules in network_graph_copy[max_node].values() for rule in rules.values())
         
-        min_capacity = min(network_graph_copy.nodes[node]["remaining_capacity"] for node in network_graph_copy.nodes)
-        
-        for src, dst, key, data in network_graph_copy.edges(max_node, data=True, keys=True):
-            src_capacity = min_capacity
+        network_graph_copy_copy = copy.deepcopy(network_graph_copy)
+        for src, dst, key, data in sorted(network_graph_copy_copy.edges(max_node, data=True, keys=True), key=lambda x: network_graph_copy_copy.nodes[x[1]]["remaining_capacity"]):
+            total_priority = sum(rule['priority'] for rules in network_graph_copy_copy[max_node].values() for rule in rules.values())
+
+            min_capacity = min(network_graph_copy_copy.nodes[node]["remaining_capacity"] for node in network_graph_copy_copy.nodes)        
             priority = data["priority"]
 
-            updated_bandwidth = (src_capacity / total_priority) * priority
-                
-            network_graph[src][dst][key]["bandwidth"] = round(updated_bandwidth)
-            network_graph_copy.nodes[dst]["remaining_capacity"] = network_graph_copy.nodes[dst]["remaining_capacity"] - updated_bandwidth
+            updated_bandwidth = (min_capacity / total_priority) * priority
+            updated_bandwidth = updated_bandwidth - (updated_bandwidth % 1000)
+
+            network_graph[src][dst][key]["bandwidth"] = updated_bandwidth
+            network_graph_copy_copy.nodes[src]["remaining_capacity"] = network_graph_copy_copy.nodes[src]["remaining_capacity"] - updated_bandwidth
+            network_graph_copy_copy.nodes[dst]["remaining_capacity"] = network_graph_copy_copy.nodes[dst]["remaining_capacity"] - updated_bandwidth
+            network_graph_copy_copy.remove_edge(src, dst, key)
+            
+            if network_graph_copy_copy.number_of_edges(src, dst) == 0:
+                network_graph_copy_copy.remove_node(dst)
 
         network_graph_copy.remove_node(max_node)
 
@@ -57,7 +63,7 @@ def decider(session=None):
             if "rule_id" in data and data["rule_id"] == req.rule_id:
                 allocated_bandwidth = int(data["bandwidth"])
         update_bandwidth(req, allocated_bandwidth, session=session)
-        mark_requests([req], "DECIDED", session)
+        mark_requests([req], "STAGED", session)
 
     # for already provisioned reqs, modify bandwidth and mark as stale
     reqs_provisioned = [req for req in get_requests(status=["MODIFIED", "PROVISIONED"], session=session)]
