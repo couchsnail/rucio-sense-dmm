@@ -59,7 +59,6 @@ def refresh_site_db(session=None):
                     new_endpoint = Endpoint(site=site_,
                                             ip_block=ipaddress.IPv6Network(block).compressed,
                                             hostname=hostname,
-                                            in_use=False
                                             )
                     new_endpoint.save(session=session)
         except Exception as e:

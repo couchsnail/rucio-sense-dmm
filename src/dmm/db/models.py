@@ -69,7 +69,6 @@ class Endpoint(BASE, ModelBase):
     site_name = Column(String(255), ForeignKey('sites.name'))
     ip_block = Column(String(255))
     hostname = Column(String(255))
-    in_use = Column(Boolean())
 
     def __init__(self, **kwargs):
         super(Endpoint, self).__init__(**kwargs)

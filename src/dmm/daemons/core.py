@@ -63,7 +63,7 @@ def decider(session=None):
             if "rule_id" in data and data["rule_id"] == req.rule_id:
                 allocated_bandwidth = int(data["bandwidth"])
         update_bandwidth(req, allocated_bandwidth, session=session)
-        mark_requests([req], "STAGED", session)
+        mark_requests([req], "DECIDED", session)
 
     # for already provisioned reqs, modify bandwidth and mark as stale
     reqs_provisioned = [req for req in get_requests(status=["MODIFIED", "PROVISIONED"], session=session)]

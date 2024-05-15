@@ -85,7 +85,7 @@ def sense_modifier(session=None):
 def canceller(session=None):
     reqs_finished = [req for req in get_requests(status=["FINISHED"], session=session)]
     for req in reqs_finished:
-        if (datetime.now(datetime.UTC) - req.updated_at).seconds > 600:
+        if (datetime.utcnow() - req.updated_at).seconds > 600:
             try:
                 sense.cancel_link(instance_uuid=req.sense_uuid)
                 sense.free_allocation(req.src_site, req.rule_id)
