@@ -4,11 +4,6 @@ from urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
-def get_siterm_list_of_endpoints(site, certs):
-    url = str(site.query_url) + "/MAIN/sitefe/json/frontend/configuration"
-    data = requests.get(url, cert=certs, verify=False).json()
-    return data[site.name]["metadata"]["xrootd"].items()
-
 def submitDebug(site, dataIn, certs):
     # SUBMIT
     urls = str(site.query_url) + "/MAIN/sitefe/json/frontend/submitdebug/NEW"

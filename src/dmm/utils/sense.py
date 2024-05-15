@@ -47,7 +47,7 @@ def get_uri(rse_name):
         logging.debug(f"Got URI: {root_uri} for {rse_name}")
         return root_uri
     except Exception as e:
-        logging.error(f"Error occurred in get_uri: {str(e)}")
+        logging.error(f"get_uri: {str(e)}")
         raise ValueError(f"Getting URI failed for {rse_name}")
 
 def get_site_info(rse_name):
@@ -59,7 +59,7 @@ def get_site_info(rse_name):
             raise ValueError(f"Site Info Query Failed for {rse_name}")
         return response
     except Exception as e:
-        logging.error(f"Error occurred in get_site_info: {str(e)}")
+        logging.error(f"get_site_info: {str(e)}")
         raise ValueError(f"Getting site info failed for {rse_name}")
 
 def get_one_host_ip_interface(site_uri):
@@ -71,9 +71,8 @@ def get_one_host_ip_interface(site_uri):
         "required": "true"
     }
     workflowApi = WorkflowCombinedApi()
-    teamplate = json.load(manifest_json)
     workflowApi.si_uuid = "a3ea7247-95d0-4c32-bc55-5ae3e30e84ef"
-    response = workflowApi.manifest_create(json.dumps(teamplate))
+    response = workflowApi.manifest_create(json.dumps(manifest_json))
     print(str(response))
 
 ############################################################################################################
@@ -87,7 +86,7 @@ def get_allocation(sitename, alloc_name):
         response = addressApi.allocate_address(pool_name, alloc_type, alloc_name, netmask="/64", batch="subnet")
         return response
     except Exception as e:
-        logging.error(f"Error occurred in get_allocation: {str(e)}")
+        logging.error(f"get_allocation: {str(e)}")
         raise ValueError(f"Getting allocation failed for {sitename} and {alloc_name}")
 
 def free_allocation(sitename, alloc_name):
@@ -97,8 +96,29 @@ def free_allocation(sitename, alloc_name):
         pool_name = 'RUCIO_Site_BGP_Subnet_Pool-' + sitename
         addressApi.free_address(pool_name, name=alloc_name)
     except Exception as e:
-        logging.error(f"Error occurred in free_allocation: {str(e)}")
+        logging.error(f"free_allocation: {str(e)}")
         raise ValueError(f"Freeing allocation failed for {sitename} and {alloc_name}")
+
+def get_list_of_endpoints(site_uri):
+    try:
+        logging.info(f"Getting list of endpoints for {site_uri}")
+        workflow_api = WorkflowCombinedApi()
+        placeholder_uuid = "c1ee8799-1090-4f4f-8312-5a226c2d5e83"
+        manifest_json = {
+            "Metadata": "?metadata?",
+            "sparql": "SELECT ?bp WHERE { ?bp a nml:BidirectionalPort } LIMIT 1",
+            "sparql-ext": f"SELECT ?metadata WHERE {{ ?site nml:hasService ?md_svc. ?md_svc mrs:hasNetworkAttribute ?dir_xrootd. ?dir_xrootd mrs:type 'metadata:directory'. ?dir_xrootd mrs:tag '/xrootd'. ?dir_xrootd mrs:value ?metadata.  FILTER regex(str(?site), '{site_uri}') }} LIMIT 1",
+            "required": "true"
+        }
+        workflow_api.si_uuid = placeholder_uuid
+        sense_response = workflow_api.manifest_create(json.dumps(manifest_json))
+        response = json.loads(sense_response)
+        metadata = json.loads(response["jsonTemplate"])
+        logging.debug(f"Got list of endpoints: {metadata} for {site_uri}")
+        return json.loads(metadata["Metadata"].replace("'", "\""))
+    except Exception as e:
+        raise ValueError(f"Getting list of endpoints failed for {site_uri}, {e}, SENSE response: {sense_response}")
+
 ############################################################################################################
 
 def stage_link(src_uri, dst_uri, src_ipv6, dst_ipv6, vlan_range, instance_uuid="", alias=""):

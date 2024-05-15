@@ -19,7 +19,7 @@ from dmm.daemons.rucio import preparer, rucio_modifier, finisher
 from dmm.daemons.fts import fts_modifier
 from dmm.daemons.sense import status_updater, stager, provision, sense_modifier, canceller, deleter
 from dmm.daemons.core import decider, allocator
-from dmm.daemons.sites import refresh_site_db, free_unused_endpoints
+from dmm.daemons.sites import refresh_site_db
 from dmm.frontend.frontend import frontend_app
 
 class DMM:
@@ -46,8 +46,7 @@ class DMM:
     def start(self):
         logging.info("Starting Daemons")
         database_builder_daemons = {
-            refresh_site_db: {"certs": (self.cert, self.key)},
-            free_unused_endpoints: None
+            refresh_site_db: None
         }
         fork(self.database_builder_daemon_frequency, self.lock, database_builder_daemons)
         

@@ -2,7 +2,7 @@ import copy
 from networkx import MultiGraph
 
 from dmm.db.session import databased
-from dmm.utils.db import get_requests, mark_requests, update_bandwidth, get_site, get_unused_endpoint, get_max_bandwidth
+from dmm.utils.db import get_requests, mark_requests, update_bandwidth, get_endpoints, get_max_bandwidth
 
 @databased
 def decider(session=None):
@@ -93,8 +93,7 @@ def allocator(session=None):
                 reqs_finished.remove(req_fin)
                 break
         else:
-            src_endpoint = get_unused_endpoint(new_request.src_site, session=session)
-            dst_endpoint = get_unused_endpoint(new_request.dst_site, session=session)
+            src_endpoint, dst_endpoint = get_endpoints(new_request, session=session)
             new_request.update({
                 "src_ipv6_block": src_endpoint.ip_block,
                 "dst_ipv6_block": dst_endpoint.ip_block,
