@@ -10,6 +10,9 @@ from dmm.db.session import databased
 @databased
 def status_updater(session=None):
     reqs_provisioned = [req for req in get_requests(status=["STAGED", "PROVISIONED", "CANCELED", "STALE", "DECIDED", "FINISHED"], session=session)]
+    if reqs_provisioned == []:
+        logging.debug("status_updater: nothing to do")
+        return
     for req in reqs_provisioned:
         status = sense.get_sense_circuit_status(req.sense_uuid)
         update_sense_circuit_status(req, status, session=session)
@@ -32,6 +35,9 @@ def stager(session=None):
         except Exception as e:
             logging.error(f"Failed to stage link for {req.rule_id}, {e}, will try again")
     reqs_init = [req for req in get_requests(status=["ALLOCATED"], session=session)]
+    if reqs_init == []:
+        logging.debug("stager: nothing to do")
+        return
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_init:
             executor.submit(stage_sense_link, req, session)
@@ -54,6 +60,9 @@ def provision(session=None):
         except Exception as e:
             logging.error(f"Failed to provision link for {req.rule_id}, {e}, will try again")
     reqs_decided = [req for req in get_requests(status=["DECIDED"], session=session)]
+    if reqs_decided == []:
+        logging.debug("provisioner: nothing to do")
+        return
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_decided:
             executor.submit(provision_sense_link, req, session)
@@ -77,6 +86,9 @@ def sense_modifier(session=None):
         finally:
             mark_requests([req], "PROVISIONED", session)
     reqs_stale = [req for req in get_requests(status=["STALE"], session=session)]
+    if reqs_stale == []:
+        logging.debug("sense_modifier: nothing to do")
+        return
     with ThreadPoolExecutor(max_workers=4) as executor:
         for req in reqs_stale:
             executor.submit(modify_sense_link, req)
@@ -84,6 +96,9 @@ def sense_modifier(session=None):
 @databased
 def canceller(session=None):
     reqs_finished = [req for req in get_requests(status=["FINISHED"], session=session)]
+    if reqs_finished == []:
+        logging.debug("canceller: nothing to do")
+        return
     for req in reqs_finished:
         if (datetime.utcnow() - req.updated_at).seconds > 600:
             try:
@@ -97,6 +112,9 @@ def canceller(session=None):
 @databased
 def deleter(session=None):
     reqs_cancelled = [req for req in get_requests(status=["CANCELED"], session=session)]
+    if reqs_cancelled == []:
+        logging.debug("deleter: nothing to do")
+        return
     for req in reqs_cancelled:
         try:
             sense.delete_link(instance_uuid=req.sense_uuid)

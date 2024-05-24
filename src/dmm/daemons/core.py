@@ -1,5 +1,6 @@
 import copy
 from networkx import MultiGraph
+import logging
 
 from dmm.db.session import databased
 from dmm.utils.db import get_requests, mark_requests, update_bandwidth, get_endpoints, get_max_bandwidth
@@ -9,6 +10,9 @@ def decider(session=None):
     network_graph = MultiGraph()
     # Get all active requests
     reqs = get_requests(status=["STAGED", "ALLOCATED", "MODIFIED", "DECIDED", "STALE", "PROVISIONED", "FINISHED", "CANCELED"], session=session)
+    if reqs == []:
+        logging.debug("decider: nothing to do")
+        return
     for req in reqs:
         src_port_capacity = get_max_bandwidth(req.src_site, session=session)
         network_graph.add_node(req.src_site, port_capacity=src_port_capacity, remaining_capacity=src_port_capacity)
@@ -78,10 +82,14 @@ def decider(session=None):
 @databased
 def allocator(session=None):
     reqs_init = [req_init for req_init in get_requests(status=["INIT"], session=session)]
+    if reqs_init == []:
+        logging.debug("allocator: nothing to do")
+        return
     for new_request in reqs_init:        
         reqs_finished = [req_fin for req_fin in get_requests(status=["FINISHED"], session=session)]
         for req_fin in reqs_finished:
             if (req_fin.src_site == new_request.src_site and req_fin.dst_site == new_request.dst_site):
+                logging.debug(f"Request {new_request.rule_id} found a finished request {req_fin.rule_id} with same endpoints, reusing ipv6 blocks and urls.")
                 new_request.update({
                     "src_ipv6_block": req_fin.src_ipv6_block,
                     "dst_ipv6_block": req_fin.dst_ipv6_block,
@@ -93,7 +101,9 @@ def allocator(session=None):
                 reqs_finished.remove(req_fin)
                 break
         else:
+            logging.debug(f"Request {new_request.rule_id} did not find a finished request with same endpoints, allocating new ipv6 blocks and urls.")
             src_endpoint, dst_endpoint = get_endpoints(new_request, session=session)
+            logging.debug(f"Got ipv6 blocks {src_endpoint.ip_block} and {dst_endpoint.ip_block} and urls {src_endpoint.hostname} and {dst_endpoint.hostname} for request {new_request.rule_id}")
             new_request.update({
                 "src_ipv6_block": src_endpoint.ip_block,
                 "dst_ipv6_block": dst_endpoint.ip_block,

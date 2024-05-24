@@ -22,7 +22,6 @@ class Config:
         if not self.parser.read(self.configfile) == [self.configfile]:
             raise RuntimeError("could not load DMM configuration file.")
 
-
 def get_config():
     global __CONFIG
     if __CONFIG is None:

@@ -26,8 +26,6 @@ class DMM:
     def __init__(self):
         self.host = config_get("dmm", "host")
         self.port = config_get_int("dmm", "port")
-        self.cert = config_get("dmm", "cert")
-        self.key = config_get("dmm", "key")
 
         self.rucio_daemon_frequency = config_get_int("daemons", "rucio", default=60)
         self.fts_daemon_frequency = config_get_int("daemons", "fts", default=60)
@@ -37,6 +35,7 @@ class DMM:
         
         self.lock = Lock()
         self.use_rucio = False
+        
         try:
             self.rucio_client = Client()
             self.use_rucio = True
@@ -45,6 +44,7 @@ class DMM:
 
     def start(self):
         logging.info("Starting Daemons")
+
         database_builder_daemons = {
             refresh_site_db: None
         }
@@ -83,6 +83,7 @@ class DMM:
             serve(frontend_app, port=self.port, host=self.host)
         except Exception as e:
             serve(frontend_app, port=8081, host=self.host)
+            
 def main():
     logging.info("Starting DMM")
     dmm = DMM()

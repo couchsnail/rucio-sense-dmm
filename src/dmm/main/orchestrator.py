@@ -6,10 +6,12 @@ def run_daemon(daemon, lock, frequency, **kwargs):
     while True:
         logging.info(f"Running {daemon.__name__}")
         with lock:
+            logging.debug(f"{daemon.__name__} acquired lock")
             try:
                 daemon(**kwargs)
             except Exception as e:
                 logging.error(f"{daemon.__name__} {e}")
+        logging.debug(f"{daemon.__name__} released lock")
         sleep(frequency)
         logging.info(f"{daemon.__name__} sleeping for {frequency} seconds")
 
