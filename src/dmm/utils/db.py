@@ -3,7 +3,7 @@ import ipaddress
 from sqlalchemy import text, or_
 
 from dmm.db.models import Request, Site, Endpoint, Mesh
-from dmm.utils.sense import get_allocation
+from dmm.utils.sense import get_allocation, free_allocation
 
 # Requests
 def get_request_from_id(rule_id, session=None):
@@ -70,15 +70,19 @@ def get_endpoint(hostname, session=None):
     return endpoint
 
 def get_endpoints(req, session=None):
-    free_src_ipv6 = get_allocation(req.src_site, req.rule_id)
-    free_src_ipv6 = ipaddress.IPv6Network(free_src_ipv6).compressed
-    
-    free_dst_ipv6 = get_allocation(req.dst_site, req.rule_id)
-    free_dst_ipv6 = ipaddress.IPv6Network(free_dst_ipv6).compressed
+    try:
+        free_src_ipv6 = get_allocation(req.src_site, req.rule_id)
+        free_src_ipv6 = ipaddress.IPv6Network(free_src_ipv6).compressed
+        
+        free_dst_ipv6 = get_allocation(req.dst_site, req.rule_id)
+        free_dst_ipv6 = ipaddress.IPv6Network(free_dst_ipv6).compressed
 
-    src_endpoint = session.query(Endpoint).filter(Endpoint.site_name == req.src_site, Endpoint.ip_block == free_src_ipv6).first()
-    dst_endpoint = session.query(Endpoint).filter(Endpoint.site_name == req.dst_site, Endpoint.ip_block == free_dst_ipv6).first()
-    return src_endpoint, dst_endpoint
+        src_endpoint = session.query(Endpoint).filter(Endpoint.site_name == req.src_site, Endpoint.ip_block == free_src_ipv6).first()
+        dst_endpoint = session.query(Endpoint).filter(Endpoint.site_name == req.dst_site, Endpoint.ip_block == free_dst_ipv6).first()
+        return src_endpoint, dst_endpoint
+    except:
+        free_allocation(req.src_site, req.rule_id)
+        free_allocation(req.dst_site, req.rule_id)
 
 # Mesh
 def get_vlan_range(site_1, site_2, session=None):

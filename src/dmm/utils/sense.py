@@ -24,20 +24,19 @@ def good_response(response):
 def get_sense_circuit_status(instance_uuid, workflow_api=None):
     if not workflow_api:
         workflow_api = WorkflowCombinedApi()
-    workflow_api.si_uuid = instance_uuid
     return workflow_api.instance_get_status(si_uuid=instance_uuid) or "UNKNOWN"
 
 def get_uri(rse_name):
     try:
         logging.debug(f"Getting URI for {rse_name}")
         discover_api = DiscoverApi()
-        response = discover_api.discover_lookup_name_get(rse_name, search="NetworkAddress")
+        response = discover_api.discover_lookup_name_get(rse_name, search="metadata", type="/sitename")
         if not good_response(response):
             raise ValueError(f"Discover query failed for {rse_name}")
         response = json.loads(response)
         if not response["results"]:
             raise ValueError(f"No results for {rse_name}")
-        matched_results = [result for result in response["results"] if result["name/tag/value"] == rse_name]
+        matched_results = [result for result in response["results"] if rse_name in result["name/tag/value"]]
         if len(matched_results) == 0:
             raise ValueError(f"No results matched")
         full_uri = matched_results[0]["resource"]
@@ -71,20 +70,22 @@ def get_one_host_ip_interface(site_uri):
         "required": "true"
     }
     workflowApi = WorkflowCombinedApi()
-    workflowApi.si_uuid = "a3ea7247-95d0-4c32-bc55-5ae3e30e84ef"
-    response = workflowApi.manifest_create(json.dumps(manifest_json))
+    placeholder_uuid = config_get("sense", "dummy_uuid")
+    response = workflowApi.manifest_create(json.dumps(manifest_json), si_uuid=placeholder_uuid)
 
+# TODO: remove alloc if fail
 def get_allocation(sitename, alloc_name):
+    addressApi = AddressApi()
+    pool_name = "RUCIO_Site_BGP_Subnet_Pool-" + sitename
+    alloc_type = "IPv6"
     try:
         logging.debug(f"Getting IPv6 allocation for {sitename}")
-        addressApi = AddressApi()
-        pool_name = "RUCIO_Site_BGP_Subnet_Pool-" + sitename
-        alloc_type = "IPv6"
         response = addressApi.allocate_address(pool_name, alloc_type, alloc_name, netmask="/64", batch="subnet")
         logging.debug(f"Got allocation: {response} for {sitename}")
         return response
     except Exception as e:
         logging.error(f"get_allocation: {str(e)}")
+        addressApi.free_address(pool_name, name=alloc_name)
         raise ValueError(f"Getting allocation failed for {sitename} and {alloc_name}")
 
 def free_allocation(sitename, alloc_name):
@@ -103,15 +104,14 @@ def get_list_of_endpoints(site_uri):
     try:
         logging.info(f"Getting list of endpoints for {site_uri}")
         workflow_api = WorkflowCombinedApi()
-        placeholder_uuid = "c1ee8799-1090-4f4f-8312-5a226c2d5e83"
+        placeholder_uuid = config_get("sense", "dummy_uuid")
         manifest_json = {
             "Metadata": "?metadata?",
             "sparql": "SELECT ?bp WHERE { ?bp a nml:BidirectionalPort } LIMIT 1",
             "sparql-ext": f"SELECT ?metadata WHERE {{ ?site nml:hasService ?md_svc. ?md_svc mrs:hasNetworkAttribute ?dir_xrootd. ?dir_xrootd mrs:type 'metadata:directory'. ?dir_xrootd mrs:tag '/xrootd'. ?dir_xrootd mrs:value ?metadata.  FILTER regex(str(?site), '{site_uri}') }} LIMIT 1",
             "required": "true"
         }
-        workflow_api.si_uuid = placeholder_uuid
-        sense_response = workflow_api.manifest_create(json.dumps(manifest_json))
+        sense_response = workflow_api.manifest_create(json.dumps(manifest_json), si_uuid=placeholder_uuid)
         response = json.loads(sense_response)
         metadata = json.loads(response["jsonTemplate"])
         logging.debug(f"Got list of endpoints: {metadata} for {site_uri}")

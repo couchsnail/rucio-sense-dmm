@@ -7,19 +7,22 @@ import logging
 @databased
 def preparer(client=None, session=None):
     rules = client.list_replication_rules()
-    logging.debug(f"Rucio got {len(rules)} rules: {rules}")
     for rule in rules:
         logging.debug(f"evaluating rule {rule['id']}")
-        if (rule["meta"] is not None) and ("sense" in rule["meta"]) and (get_request_from_id(rule["id"], session=session) is None):
-            new_request = Request(rule_id=rule["id"],
-                                    src_site=rule["source_replica_expression"], 
-                                    dst_site=rule["rse_expression"],
-                                    priority=rule["priority"],
-                                    transfer_status="INIT",
-                                )
-            new_request.save(session=session)
-        else:
+        if ((rule["meta"] is None) and ("sense" not in rule["meta"])):
             logging.debug(f"rule {rule['id']} is not a sense rule")
+        else:
+            logging.debug(f"rule {rule['id']} is a sense rule, checking if it's in db already")
+            if (get_request_from_id(rule["id"], session=session) is None):
+                new_request = Request(rule_id=rule["id"],
+                                        src_site=rule["source_replica_expression"], 
+                                        dst_site=rule["rse_expression"],
+                                        priority=rule["priority"],
+                                        transfer_status="INIT",
+                                    )
+                new_request.save(session=session)
+            else:
+                logging.debug(f"rule {rule['id']} already in db, nothing to do")
 
 @databased
 def rucio_modifier(client=None, session=None):

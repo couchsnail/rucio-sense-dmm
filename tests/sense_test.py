@@ -16,5 +16,4 @@ def free_allocation(sitename, alloc_name):
         raise ValueError(f"Freeing allocation failed for {sitename} and {alloc_name}")
 
 if __name__ == "__main__":
-    free_allocation("T2_US_SDSC", "test3")
-    free_allocation("T2_US_Caltech", "test3")
+    free_allocation("T2_US_SDSC", "test")

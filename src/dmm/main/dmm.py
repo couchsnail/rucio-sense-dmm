@@ -1,18 +1,24 @@
 import logging
 import sys
+import argparse
 
-logging.basicConfig(
-    format="(%(threadName)s) [%(asctime)s] %(levelname)s: %(message)s",
-    datefmt="%m-%d-%Y %H:%M:%S %p",
-    level=logging.DEBUG,
-    handlers=[logging.FileHandler(filename="dmm.log"), logging.StreamHandler(sys.stdout)]
-)
+argparser = argparse.ArgumentParser()
+argparser.add_argument("--log-level", default="debug", help="Set the log level")
+
+args = argparser.parse_args()
 
 from multiprocessing import Lock
 from waitress import serve
 
+logging.basicConfig(
+    format="(%(threadName)s) [%(asctime)s] %(levelname)s: %(message)s",
+    datefmt="%m-%d-%Y %H:%M:%S %p",
+    level=getattr(logging, args.log_level.upper()),
+    handlers=[logging.FileHandler(filename="dmm.log"), logging.StreamHandler(sys.stdout)]
+)
+
 from rucio.client import Client
-from dmm.utils.config import config_get, config_get_int
+from dmm.utils.config import config_get, config_get_int, config_get_bool
 from dmm.main.orchestrator import fork
 
 from dmm.daemons.rucio import preparer, rucio_modifier, finisher
@@ -26,6 +32,12 @@ class DMM:
     def __init__(self):
         self.host = config_get("dmm", "host")
         self.port = config_get_int("dmm", "port")
+        self.debug_mode = config_get_bool("dmm", "debug_mode", default=False)
+
+        if self.debug_mode:
+            logging.info("Running in debug mode, sense will not be used")
+        else:
+            logging.info("Running in production mode, sense will be used")
 
         self.rucio_daemon_frequency = config_get_int("daemons", "rucio", default=60)
         self.fts_daemon_frequency = config_get_int("daemons", "fts", default=60)
@@ -56,12 +68,12 @@ class DMM:
         fork(self.dmm_daemon_frequency, self.lock, fts_daemons)
         
         sense_daemons = {
-            status_updater: None,
-            stager: None, 
-            provision: None, 
-            sense_modifier: None,
-            canceller: None,
-            deleter: None
+            status_updater: {"debug_mode": self.debug_mode},
+            stager: {"debug_mode": self.debug_mode}, 
+            provision: {"debug_mode": self.debug_mode}, 
+            sense_modifier: {"debug_mode": self.debug_mode},
+            canceller: {"debug_mode": self.debug_mode},
+            deleter: {"debug_mode": self.debug_mode}
         }
         fork(self.sense_daemon_frequency, self.lock, sense_daemons)
         
