@@ -5,6 +5,7 @@ import os
 
 from dmm.db.session import databased
 from dmm.utils.db import get_request_from_id, get_request_cursor
+from dmm.utils.monit import prom_get_throughput_at_t, fts_submit_job_query
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 templates_folder = os.path.join(current_directory, "templates")
@@ -41,3 +42,22 @@ def get_dmm_status(session=None):
     except Exception as e:
         logging.error(e)
         return "Problem in the DMM frontend\n"
+
+# @frontend_app.route("/<rule_id>", methods=["GET", "POST"])
+# @databased
+# def get_dmm_data(rule_id,session=None):
+#     #Step 1: Get all the metrics from the original status page (possibly using client handling template from earlier)
+#     #Step 2: Call prom_get_throughput_at_t, fts_submit_job_query (separate template?) for specific rule
+#     try:
+#         req = get_request_from_id(rule_id, session=session)
+#         return render_template("details.html",data=req) #Replace this with actual html for page rule
+#     except Exception as e:
+#         logging.error(e)
+#         return "Problem in the DMM frontend\n"
+
+# #Plans for graphs
+# '''
+# -Render graphs based on databased data - scatter plot of time trends using prom_get_total_bytes_at_t, etc.
+# -Should these be another page from the status page?
+# -Also should I change the url from status...
+# '''

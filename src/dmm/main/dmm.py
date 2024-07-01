@@ -92,7 +92,7 @@ class DMM:
             fork(self.rucio_daemon_frequency, self.lock, rucio_daemons)
         
         try:
-            serve(frontend_app, port=self.port, host=self.host)
+            serve(frontend_app, port=8081, host='localhost')
         except Exception as e:
             serve(frontend_app, port=8081, host=self.host)
             
