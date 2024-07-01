@@ -1,6 +1,7 @@
 from sense.client.address_api import AddressApi
 import json
 import logging
+import argparse
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -16,4 +17,10 @@ def free_allocation(sitename, alloc_name):
         raise ValueError(f"Freeing allocation failed for {sitename} and {alloc_name}")
 
 if __name__ == "__main__":
-    free_allocation("T2_US_SDSC", "test")
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("--sitename", help="Site name")
+    argparser.add_argument("--alloc_name", help="Allocation name")
+
+    args = argparser.parse_args()
+    
+    free_allocation(args.sitename, args.alloc_name)

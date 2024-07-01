@@ -1,6 +1,7 @@
 import logging
 import json
 import requests
+import urllib
 
 from dmm.utils.config import config_get
 
@@ -41,8 +42,8 @@ def modify_link_config(req, max_active, min_active):
     data = json.dumps(data)
     try:
         response = requests.post(url + "/config/links", headers=headers, cert=cert, verify=capath, data=data)
-        logging.info(f"FTS link config modified, response: {response}")
-        return (response.status_code == 200)
+        logging.info(f"FTS link config modified, response: {response.text}")
+        return (response.status_code == 200 or response.status_code == 201)
     except:
         logging.exception("Error while modifying FTS link config")
         return None
@@ -82,8 +83,29 @@ def modify_se_config(req, max_inbound, max_outbound):
     try:
         data = json.dumps(data)
         response = requests.post(url + "/config/se", headers=headers, cert=cert, verify=capath, data=data)
-        logging.info(f"FTS storage config modified, response: {response}")
-        return (response.status_code == 200)
+        logging.info(f"FTS storage config modified, response: {response.text}")
+        return (response.status_code == 200 or response.status_code == 201)
     except: 
         logging.exception("Error while modifying FTS storage config")
+        return None
+
+def delete_link_config(req):
+    url, cert, capath, headers, src_url_no_port, dst_url_no_port = setup_request(req)
+    try:
+        response = requests.delete(url + "/config/links/" + urllib.parse.quote("-".join([src_url_no_port, dst_url_no_port]), safe=""), headers=headers, cert=cert, verify=False)
+        logging.info(f"FTS link config response: {response.text}")
+        return (response.status_code == 200)
+    except:
+        logging.exception("Error while deleting FTS link config")
+        return None
+
+def delete_se_config(req):
+    url, cert, capath, headers, src_url_no_port, dst_url_no_port = setup_request(req)
+    try:
+        response = requests.delete(url + "/config/se/" + urllib.parse.quote(src_url_no_port, safe=""), headers=headers, cert=cert, verify=False)
+        response = requests.delete(url + "/config/se/" + urllib.parse.quote(dst_url_no_port, safe=""), headers=headers, cert=cert, verify=False)
+        logging.info(f"FTS storage config response: {response.text}")
+        return (response.status_code == 200)
+    except:
+        logging.exception("Error while deleting FTS storage config")
         return None

@@ -83,6 +83,7 @@ def get_endpoints(req, session=None):
     except:
         free_allocation(req.src_site, req.rule_id)
         free_allocation(req.dst_site, req.rule_id)
+        raise Exception("Could not find endpoints")
 
 # Mesh
 def get_vlan_range(site_1, site_2, session=None):
