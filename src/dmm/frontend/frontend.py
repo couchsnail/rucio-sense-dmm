@@ -45,7 +45,8 @@ def get_dmm_status(session=None):
 
 # @frontend_app.route("/<rule_id>", methods=["GET", "POST"])
 # @databased
-# def get_dmm_data(rule_id,session=None):
+# def open_page(rule_id,session=None):
+#     logging.info(f"Received request for rule_id: {rule_id}")
 #     #Step 1: Get all the metrics from the original status page (possibly using client handling template from earlier)
 #     #Step 2: Call prom_get_throughput_at_t, fts_submit_job_query (separate template?) for specific rule
 #     try:

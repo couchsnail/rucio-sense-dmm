@@ -14,13 +14,19 @@
             min-height: 100vh;
         }
         
+        .header-wrapper {
+            background-color: #0078D4;
+            width: 100vw;
+            flex-shrink: 0;
+        }
+
         h1 {
             text-align: center;
-            color: #333;
+            color: white;
+            background-color: #0078D4;
             padding: 20px;
             margin: 0;
-            background-color: #0078D4;
-            color: white;
+            width: 100%
         }
         
         table {
@@ -94,9 +100,14 @@
                 <td>{{ row[11] }}</td>
                 <td>{{ row[12] }}</td>
                 <td>{{ row[13] }}</td>
-                <td><button>See More</button></td>
+                <td><button>Open Rule</button></td>
             </tr>
             {% endfor %}
+            <!-- <script>
+                function openRule() {
+                    window.open("{{url_for('/<rule_id>')}}");
+                }
+            </script> -->
         </tbody>
     </table>
     <footer>
