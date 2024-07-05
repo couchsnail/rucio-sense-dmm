@@ -43,18 +43,19 @@ def get_dmm_status(session=None):
         logging.error(e)
         return "Problem in the DMM frontend\n"
 
-# @frontend_app.route("/<rule_id>", methods=["GET", "POST"])
-# @databased
-# def open_page(rule_id,session=None):
-#     logging.info(f"Received request for rule_id: {rule_id}")
-#     #Step 1: Get all the metrics from the original status page (possibly using client handling template from earlier)
-#     #Step 2: Call prom_get_throughput_at_t, fts_submit_job_query (separate template?) for specific rule
-#     try:
-#         req = get_request_from_id(rule_id, session=session)
-#         return render_template("details.html",data=req) #Replace this with actual html for page rule
-#     except Exception as e:
-#         logging.error(e)
-#         return "Problem in the DMM frontend\n"
+@frontend_app.route("/status/<rule_id>", methods=["GET", "POST"])
+@databased
+def open_page(rule_id,session=None):
+    logging.info(f"Retrieving information for rule_id: {rule_id}")
+    #Step 1: Get all the metrics from the original status page (possibly using client handling template from earlier)
+    #Step 2: Call prom_get_throughput_at_t, fts_submit_job_query (separate template?) for specific rule
+    try:
+        cursor = get_request_cursor(session=session)
+        data = cursor.fetchall() 
+        return render_template("details.html",data=data)
+    except Exception as e:
+        logging.error(e)
+        return "Problem in the DMM frontend\n"
 
 # #Plans for graphs
 # '''
