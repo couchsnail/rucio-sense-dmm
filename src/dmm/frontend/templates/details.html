@@ -1,118 +1,78 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta http-equiv="refresh" content="5">
-    <title>DMM Status</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+    <head>
+        <meta http-equiv="refresh" content="5">
+        <title>Current Request</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f2f2f2;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+            }
+            
+            h1 {
+                text-align: center;
+                color: #333;
+                padding: 20px;
+                margin: 0;
+                background-color: #0078D4;
+                color: white;
+            }
+            
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 20px auto;
+                background-color: white;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+            
+            th, td {
+                border: 1px solid #ddd;
+                padding: 4px;
+                text-align: center;
+            }
+            
+            th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+            }
+            
+            tbody tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+            
+            tbody tr:hover {
+                background-color: #e6e6e6;
+            }
+            
+            footer {
+                text-align: center;
+                font-size: 12px;
+                color: #999;
+                margin-top: auto;
+                opacity: 0.5;
+            }
+        </style>
+        <h1>DMM Status</h1>
+        <table>
+            <thead>
+                <tr>
+                    <li>
+                        <ul>Rule ID: {{ rule_id }}</ul>
+                        <ul>Bandwidth: {{ bandwidth }}</ul>
+                        <ul>Circuit Status: {{ sense_circuit_status }}</ul>
+                    </li>
+                </tr>
+            </thead>  
         
-        .header-wrapper {
-            background-color: #0078D4;
-            width: 100vw;
-            flex-shrink: 0;
-        }
-
-        h1 {
-            text-align: center;
-            color: white;
-            background-color: #0078D4;
-            padding: 20px;
-            margin: 0;
-            width: 100%
-        }
-        
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 20px auto;
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        th, td {
-            border: 1px solid #ddd;
-            padding: 4px;
-            text-align: center;
-        }
-        
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        
-        tbody tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        tbody tr:hover {
-            background-color: #e6e6e6;
-        }
-        
-        footer {
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-            margin-top: auto;
-            opacity: 0.5;
-        }
-    </style>
-</head>
-<body>
-    <h1>DMM Status</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Rule ID</th>
-                <th>Status</th>
-                <th>Src Site</th>
-                <th>Src IPv6 Range</th>
-                <th>Src Hostname</th>
-                <th>Dst Site</th>
-                <th>Dst IPv6 Range</th>
-                <th>Dst Hostname</th>
-                <th>Priority</th>
-                <th>Bandwidth</th>
-                <th>Sense UUID</th>
-                <th>Circuit Status</th>
-                <th>Details</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in data %}
-            <tr>
-                <td>{{ row[0] }}</td>
-                <td>{{ row[1] }}</td>
-                <td>{{ row[2] }}</td>
-                <td>{{ row[3] }}</td>
-                <td>{{ row[4] }}</td>
-                <td>{{ row[5] }}</td>
-                <td>{{ row[6] }}</td>
-                <td>{{ row[7] }}</td>
-                <td>{{ row[8] }}</td>
-                <td>{{ row[11] }}</td>
-                <td>{{ row[12] }}</td>
-                <td>{{ row[13] }}</td>
-                <td><button>Open Rule</button></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <footer>
-        <p>&copy; Apache License, Version 2.0</p>
-    </footer>
-</body>
-</html>
-
-<!-- Placeholder for plots
+            <!-- Placeholder for plots
             <body> 
                 <h1>Apple Stock Info From the Past 30 Days</h1> 
                 <img src="data:image/png;base64,{{ img_data }}" alt="Graph"> 
             </body>  -->
+</html>

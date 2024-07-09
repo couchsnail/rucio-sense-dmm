@@ -1,4 +1,4 @@
-from flask import Flask, Response, render_template
+from flask import Flask, Response, render_template, url_for
 import logging
 import json
 import os
@@ -43,23 +43,31 @@ def get_dmm_status(session=None):
         logging.error(e)
         return "Problem in the DMM frontend\n"
 
-@frontend_app.route("/status/<rule_id>", methods=["GET", "POST"])
+@frontend_app.route('/process_id', methods=['POST'])
 @databased
-def open_page(rule_id,session=None):
+def process_id():
+    data = request.json
+    rule_id = data.get('rule_id')
+
+    # Generate the URL based on the row data
+    url = url_for('details', rule_id=rule_id, _external=True)
+    
+    # Return the URL as plain text
+    return url
+
+@frontend_app.route("/details", methods=["GET", "POST"])
+@databased
+def open_rule_details(rule_id,session=None):
     logging.info(f"Retrieving information for rule_id: {rule_id}")
     #Step 1: Get all the metrics from the original status page (possibly using client handling template from earlier)
     #Step 2: Call prom_get_throughput_at_t, fts_submit_job_query (separate template?) for specific rule
     try:
+        req = get_request_from_id(rule_id, session=session)
         cursor = get_request_cursor(session=session)
-        data = cursor.fetchall() 
+        cursor.execute("SELECT rule_id, bandwidth, sense_circuit_status FROM requests WHERE (src_site=req.get('source') AND dst_site=req.get('destination')")
+        data = cursor.fetchall()
         return render_template("details.html",data=data)
     except Exception as e:
         logging.error(e)
         return "Problem in the DMM frontend\n"
 
-# #Plans for graphs
-# '''
-# -Render graphs based on databased data - scatter plot of time trends using prom_get_total_bytes_at_t, etc.
-# -Should these be another page from the status page?
-# -Also should I change the url from status...
-# '''
