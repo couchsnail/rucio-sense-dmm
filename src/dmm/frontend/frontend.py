@@ -43,22 +43,21 @@ def get_dmm_status(session=None):
         logging.error(e)
         return "Problem in the DMM frontend\n"
 
-@frontend_app.route("/details/<int:rule_id>", methods=["GET", "POST"])
+@frontend_app.route("/details/<rule_id>", methods=["GET", "POST"])
 @databased
 def open_rule_details(rule_id,session=None):
     logging.info(f"Retrieving information for rule_id: {rule_id}")
-    #Step 1: Get all the metrics from the original status page (possibly using client handling template from earlier)
-    #Step 2: Call prom_get_throughput_at_t, fts_submit_job_query (separate template?) for specific rule
     try:
         req = get_request_from_id(rule_id, session=session)
         cursor = get_request_cursor(session=session)
-        cursor.execute("SELECT rule_id, bandwidth, sense_circuit_status FROM requests WHERE (src_site=req.get('source') AND dst_site=req.get('destination')")
-        data = cursor.fetchall()
-        logging.debug(data)
-        return render_template("details.html",data=data)
+        cursor.execute(f"SELECT rule_id, bandwidth, sense_circuit_status FROM requests WHERE rule_id = '{req.rule_id}'")
+        data = cursor.fetchone()
+        rule_id, bandwidth, sense_circuit_status = data
+        logging.debug(f"Cursor data: {data}")
+        return render_template("details.html",rule_id=rule_id, bandwidth=bandwidth, sense_circuit_status=sense_circuit_status)
     except Exception as e:
         logging.error(e)
-        return "Problem in the DMM frontend\n"
+        return "Failed to retrieve rule info\n"
 
 @frontend_app.route('/process_id', methods=['POST'])
 @databased

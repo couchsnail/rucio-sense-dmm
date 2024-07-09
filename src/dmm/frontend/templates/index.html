@@ -61,11 +61,12 @@
 </head>
 <body>
     <script>
-        function sendRuleID(row) {
-            let row = button.closest('tr'); // Find the closest parent row element
-            let rule_id = row.cells[0].innerText; // Extract the rule_id from the first cell of the row
+        function sendRuleID(button) {
+            console.log('Button clicked');
+            let rowElement = button.closest('tr'); 
+            let rule_id = rowElement.cells[0].innerText;
 
-            // Send the data to Flask
+            console.log('Rule ID:', rule_id);
             fetch('/process_id', {
                 method: 'POST',
                 headers: {
@@ -120,7 +121,7 @@
                 <td>{{ row[11] }}</td>
                 <td>{{ row[12] }}</td>
                 <td>{{ row[13] }}</td>
-                <td><button onclick="sendRuleID(this.parentNode.parentNode)">See More</button></td>
+                <td><button onclick="sendRuleID(this)">See More</button></td>
             </tr>
             {% endfor %}
         </tbody>
