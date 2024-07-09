@@ -1,4 +1,4 @@
-from flask import Flask, Response, render_template, url_for
+from flask import Flask, Response, render_template, url_for, request
 import logging
 import json
 import os
@@ -43,20 +43,7 @@ def get_dmm_status(session=None):
         logging.error(e)
         return "Problem in the DMM frontend\n"
 
-@frontend_app.route('/process_id', methods=['POST'])
-@databased
-def process_id():
-    data = request.json
-    rule_id = data.get('rule_id')
-
-    # Generate the URL based on the row data
-    url = url_for('details', rule_id=rule_id, _external=True)
-    
-    # Return the URL as plain text
-    return url
-
-@frontend_app.route("/details", methods=["GET", "POST"])
-@databased
+@frontend_app.route("/details/<int:rule_id>", methods=["GET", "POST"])
 def open_rule_details(rule_id,session=None):
     logging.info(f"Retrieving information for rule_id: {rule_id}")
     #Step 1: Get all the metrics from the original status page (possibly using client handling template from earlier)
@@ -66,8 +53,16 @@ def open_rule_details(rule_id,session=None):
         cursor = get_request_cursor(session=session)
         cursor.execute("SELECT rule_id, bandwidth, sense_circuit_status FROM requests WHERE (src_site=req.get('source') AND dst_site=req.get('destination')")
         data = cursor.fetchall()
+        logging.debug(data)
         return render_template("details.html",data=data)
     except Exception as e:
         logging.error(e)
         return "Problem in the DMM frontend\n"
 
+@frontend_app.route('/process_id', methods=['POST'])
+def process_id(session=None):
+    data = request.json
+    rule_id = data.get('rule_id')
+    logging.debug(f"Rule ID:{rule_id}")
+    url = url_for('open_rule_details', rule_id=rule_id, _external=True)
+    return url
