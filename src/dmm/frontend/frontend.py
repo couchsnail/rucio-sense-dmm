@@ -44,6 +44,7 @@ def get_dmm_status(session=None):
         return "Problem in the DMM frontend\n"
 
 @frontend_app.route("/details/<int:rule_id>", methods=["GET", "POST"])
+@databased
 def open_rule_details(rule_id,session=None):
     logging.info(f"Retrieving information for rule_id: {rule_id}")
     #Step 1: Get all the metrics from the original status page (possibly using client handling template from earlier)
@@ -60,6 +61,7 @@ def open_rule_details(rule_id,session=None):
         return "Problem in the DMM frontend\n"
 
 @frontend_app.route('/process_id', methods=['POST'])
+@databased
 def process_id(session=None):
     data = request.json
     rule_id = data.get('rule_id')
