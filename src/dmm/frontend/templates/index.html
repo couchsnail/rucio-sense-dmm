@@ -60,6 +60,33 @@
     </style>
 </head>
 <body>
+    <script>
+        function sendRuleID(button) {
+            console.log('Button clicked');
+            let rowElement = button.closest('tr'); 
+            let rule_id = rowElement.cells[0].innerText;
+
+            console.log('Rule ID:', rule_id);
+            fetch('/process_id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ rule_id: rule_id })
+            })
+            .then(response => response.text())
+            .then(url => {
+                if (url) {
+                    window.open(url, '_blank');
+                } else {
+                    alert('Failed to retrieve rule ID.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
     <h1>DMM Status</h1>
     <table>
         <thead>
@@ -76,6 +103,7 @@
                 <th>Bandwidth</th>
                 <th>Sense UUID</th>
                 <th>Circuit Status</th>
+                <th>Details</th>
             </tr>
         </thead>
         <tbody>
@@ -93,6 +121,7 @@
                 <td>{{ row[11] }}</td>
                 <td>{{ row[12] }}</td>
                 <td>{{ row[13] }}</td>
+                <td><button onclick="sendRuleID(this)">See More</button></td>
             </tr>
             {% endfor %}
         </tbody>

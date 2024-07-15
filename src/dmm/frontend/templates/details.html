@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="refresh" content="5">
+        <title>Current Request</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f2f2f2;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+            }
+            
+            h1 {
+                text-align: center;
+                color: #333;
+                padding: 20px;
+                margin: 0;
+                background-color: #0078D4;
+                color: white;
+            }
+            
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 20px auto;
+                background-color: white;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+            
+            th, td {
+                border: 1px solid #ddd;
+                padding: 4px;
+                text-align: center;
+            }
+            
+            th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+            }
+            
+            tbody tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+            
+            tbody tr:hover {
+                background-color: #e6e6e6;
+            }
+            
+            footer {
+                text-align: center;
+                font-size: 12px;
+                color: #999;
+                margin-top: auto;
+                opacity: 0.5;
+            }
+        </style>
+        <h1>DMM Status</h1>
+        <table>
+            <thead>
+                <tr>
+                    <li>
+                        <ul>Rule ID: {{ rule_id }}</ul>
+                        <ul>Bandwidth: {{ bandwidth }}</ul>
+                        <ul>Circuit Status: {{ sense_circuit_status }}</ul>
+                    </li>
+                </tr>
+            </thead>  
+        
+            <!-- Placeholder for plots
+            <body> 
+                <h1>Apple Stock Info From the Past 30 Days</h1> 
+                <img src="data:image/png;base64,{{ img_data }}" alt="Graph"> 
+            </body>  -->
+</html>

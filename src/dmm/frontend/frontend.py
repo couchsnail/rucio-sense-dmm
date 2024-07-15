@@ -1,10 +1,11 @@
-from flask import Flask, Response, render_template
+from flask import Flask, Response, render_template, url_for, request
 import logging
 import json
 import os
 
 from dmm.db.session import databased
 from dmm.utils.db import get_request_from_id, get_request_cursor
+from dmm.utils.monit import prom_get_throughput_at_t, fts_submit_job_query
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 templates_folder = os.path.join(current_directory, "templates")
@@ -41,3 +42,28 @@ def get_dmm_status(session=None):
     except Exception as e:
         logging.error(e)
         return "Problem in the DMM frontend\n"
+
+@frontend_app.route("/details/<rule_id>", methods=["GET", "POST"])
+@databased
+def open_rule_details(rule_id,session=None):
+    logging.info(f"Retrieving information for rule_id: {rule_id}")
+    try:
+        req = get_request_from_id(rule_id, session=session)
+        cursor = get_request_cursor(session=session)
+        cursor.execute(f"SELECT rule_id, bandwidth, sense_circuit_status FROM requests WHERE rule_id = '{req.rule_id}'")
+        data = cursor.fetchone()
+        rule_id, bandwidth, sense_circuit_status = data
+        logging.debug(f"Cursor data: {data}")
+        return render_template("details.html",rule_id=rule_id, bandwidth=bandwidth, sense_circuit_status=sense_circuit_status)
+    except Exception as e:
+        logging.error(e)
+        return "Failed to retrieve rule info\n"
+
+@frontend_app.route('/process_id', methods=['POST'])
+@databased
+def process_id(session=None):
+    data = request.json
+    rule_id = data.get('rule_id')
+    logging.debug(f"Rule ID:{rule_id}")
+    url = url_for('open_rule_details', rule_id=rule_id, _external=True)
+    return url
