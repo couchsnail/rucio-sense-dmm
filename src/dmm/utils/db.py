@@ -79,11 +79,16 @@ def get_endpoints(req, session=None):
 
         src_endpoint = session.query(Endpoint).filter(Endpoint.site_name == req.src_site, Endpoint.ip_block == free_src_ipv6).first()
         dst_endpoint = session.query(Endpoint).filter(Endpoint.site_name == req.dst_site, Endpoint.ip_block == free_dst_ipv6).first()
+        
+        if src_endpoint is None or dst_endpoint is None:
+            raise Exception("Could not find endpoints")        
+        
         return src_endpoint, dst_endpoint
-    except:
+    
+    except Exception as e:
         free_allocation(req.src_site, req.rule_id)
         free_allocation(req.dst_site, req.rule_id)
-        raise Exception("Could not find endpoints")
+        logging.error(e)
 
 # Mesh
 def get_vlan_range(site_1, site_2, session=None):

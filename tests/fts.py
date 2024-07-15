@@ -8,7 +8,7 @@ class A:
         self.dst_url = dst_url
         self.src_url = src_url
 
-test = A("sense-redir-02.ultralight.org:1094", "xrootd-sense-ucsd-redirector-112.sdsc.optiputer.net:1094")
+test = A("xrootd-sense-ucsd-redirector-112.sdsc.optiputer.net:1094","redir-11.t2-sense.ultralight.org:1094")
 
-print(fts.modify_link_config(test, 100, 100))
-print(fts.modify_se_config(test, 100, 100))
+print(fts.modify_link_config(test, 1000, 1000))
+print(fts.modify_se_config(test, 1000, 1000))

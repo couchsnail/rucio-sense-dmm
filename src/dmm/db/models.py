@@ -3,8 +3,6 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from dmm.db.session import get_engine
-
 BASE = declarative_base()
 
 class ModelBase(object):
@@ -88,7 +86,3 @@ class Mesh(BASE, ModelBase):
 
     def __init__(self, **kwargs):
         super(Mesh, self).__init__(**kwargs)
-
-# Create the tables if don't exist when module first imported.
-engine=get_engine()
-BASE.metadata.create_all(bind=engine, checkfirst=True)
