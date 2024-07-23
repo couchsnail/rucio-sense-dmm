@@ -30,7 +30,6 @@ from dmm.frontend.frontend import frontend_app
 
 class DMM:
     def __init__(self):
-        self.host = config_get("dmm", "host")
         self.port = config_get_int("dmm", "port")
         self.debug_mode = config_get_bool("dmm", "debug_mode", default=False)
 
@@ -90,11 +89,8 @@ class DMM:
                 finisher: {"client": self.rucio_client}
             }
             fork(self.rucio_daemon_frequency, self.lock, rucio_daemons)
-        
-        try:
-            serve(frontend_app, port=self.port, host=self.host)
-        except Exception as e:
-            serve(frontend_app, port=8081, host=self.host)
+
+        serve(frontend_app, port=self.port)
             
 def main():
     logging.info("Starting DMM")
