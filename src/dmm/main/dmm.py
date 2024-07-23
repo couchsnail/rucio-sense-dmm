@@ -7,15 +7,15 @@ argparser.add_argument("--log-level", default="debug", help="Set the log level")
 
 args = argparser.parse_args()
 
-from multiprocessing import Lock
-from waitress import serve
-
 logging.basicConfig(
     format="(%(threadName)s) [%(asctime)s] %(levelname)s: %(message)s",
     datefmt="%m-%d-%Y %H:%M:%S %p",
     level=getattr(logging, args.log_level.upper()),
     handlers=[logging.FileHandler(filename="dmm.log"), logging.StreamHandler(sys.stdout)]
 )
+
+from multiprocessing import Lock
+from waitress import serve
 
 from rucio.client import Client
 from dmm.utils.config import config_get, config_get_int, config_get_bool
@@ -89,9 +89,11 @@ class DMM:
                 finisher: {"client": self.rucio_client}
             }
             fork(self.rucio_daemon_frequency, self.lock, rucio_daemons)
+        try:
+            serve(frontend_app, port=self.port)
+        except:
+            serve(frontend_app, port=8080)
 
-        serve(frontend_app, port=self.port)
-            
 def main():
     logging.info("Starting DMM")
     dmm = DMM()

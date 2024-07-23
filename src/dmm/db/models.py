@@ -46,6 +46,7 @@ class Request(BASE, ModelBase):
     sense_uuid = Column(String(255))
     sense_circuit_status = Column(String(255))
     fts_modified = Column(Boolean())
+    sense_provisioned_at = Column(DateTime())
 
     def __init__(self, **kwargs):
         super(Request, self).__init__(**kwargs)
