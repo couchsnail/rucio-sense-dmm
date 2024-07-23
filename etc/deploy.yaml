@@ -13,10 +13,16 @@ spec:
       labels:
         app: dmm
     spec:
-      hostNetwork: true
       containers:
       - name: dmm
         image: aaarora/dmm:latest
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "4"
         ports:
         - containerPort: 80
         volumeMounts:
@@ -39,13 +45,20 @@ spec:
           subPath: cert.pem
       - name: postgres
         image: postgres
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "4"
         env:
         - name: POSTGRES_USER
           value: "dmm"
         - name: POSTGRES_PASSWORD
           value: "dmm"
       nodeSelector:
-        kubernetes.io/hostname: nrp-01.nrp-nautilus.io
+        nautilus.io/ipv6: "true"
       volumes:
       - name: dmm-config
         secret:
@@ -68,3 +81,39 @@ spec:
         secret:
           defaultMode: 420
           secretName: rucio-server-rucio-ca-bundle
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dmm
+  namespace: ucsd-rucio
+spec:
+  selector:
+    app: dmm
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 80
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: haproxy
+  name: dmm
+spec:
+  rules:
+  - host: dmm.nrp-nautilus.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dmm
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - dmm.nrp-nautilus.io
