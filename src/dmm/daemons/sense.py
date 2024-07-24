@@ -18,7 +18,7 @@ def status_updater(debug_mode=False, session=None):
         for req in reqs_provisioned:
             status = sense.get_sense_circuit_status(req.sense_uuid)
             update_sense_circuit_status(req, status, session=session)
-            if req.sense_provisioned is None and re.match(r"(CREATE|MODIFY|REINSTATE) - READY$", status):
+            if req.sense_provisioned_at is None and re.match(r"(CREATE|MODIFY|REINSTATE) - READY$", status):
                 req.update({"sense_provisioned_at": datetime.utcnow()})
     else:
         logging.debug("status_updater: skipping status update in debug mode")
