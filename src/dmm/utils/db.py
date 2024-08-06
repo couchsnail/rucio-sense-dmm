@@ -2,7 +2,7 @@ import logging
 import ipaddress
 from sqlalchemy import text, or_
 
-from dmm.db.models import Request, Site, Endpoint, Mesh
+from dmm.db.models import Request, Site, Endpoint, Mesh, Bytes
 from dmm.utils.sense import get_allocation, free_allocation
 
 # Requests
@@ -104,4 +104,32 @@ def get_max_bandwidth(site, session=None):
     mesh = session.query(Mesh).filter(or_(Mesh.site_1 == site, Mesh.site_2 == site)).all()
     bandwidths = {m.max_bandwidth for m in mesh}
     return max(bandwidths) 
+
+#Bytes
+def get_interval_cursor(session=None):
+    return session.execute(text("SELECT * from bytes")).cursor
+
+def check_intervals(volume, session=None):
+    cursor = get_interval_cursor
+
+    #Check if nothing is in the database
+    query = f"SELECT COUNT(interval_5) FROM bytes WHERE interval_5 IS NOT NULL"
+    cursor.execute(query)
+    is_null = bool(cursor.fetchone()[0]==0)
+    #If nothing is in the database, insert given volume into interval_5
+    if is_null:
+        session.execute(f"INSERT INTO bytes (interval_5) VALUES ({volume})")
+    #If not, move all values over one interval, inserting this volumen into interval_5
+    else:
+        is_full = session.execute("SELECT COUNT(interval_1) FROM bytes WHERE interval_1 IS NOT NULL")
+        is_full = bool(is_full==0)
+        if is_full:
+            session.execute(f"UPDATE bytes SET interval_1 = NULL")
+        for i in range(5,1,-1):
+            cursor.execute(f"SELECT interval_{i} FROM bytes")
+            old_volume = cursor.fetchone()[0]
+            session.execute(f"UPDATE bytes SET interval_{i-1} = :old_volume")
+            session.execute(f"UPDATE bytes SET interval_{i} = :volume")
+
+
     

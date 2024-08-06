@@ -87,3 +87,14 @@ class Mesh(BASE, ModelBase):
 
     def __init__(self, **kwargs):
         super(Mesh, self).__init__(**kwargs)
+
+class Bytes(BASE, ModelBase):
+    __tablename__ = "bytes"
+    interval_1 = Column(Integer(), primary_key=True)
+    interval_2 = Column(Integer())
+    interval_3 = Column(Integer())
+    interval_4 = Column(Integer())
+    interval_5 = Column(Integer())
+
+    def __init__(self, **kwargs):
+        super(Bytes, self).__init__(**kwargs)
