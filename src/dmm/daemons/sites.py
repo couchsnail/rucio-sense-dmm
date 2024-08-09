@@ -27,7 +27,6 @@ def refresh_site_db(session=None):
                 logging.debug(f"Site {site} not found in database, adding...")
                 # if not, get the site info from sense and add it to the database
                 site_info = get_site_info(site)
-                site_info = json.loads(site_info)
                 sense_uri = site_info["domain_uri"]
                 query_url = site_info["domain_url"]
                 site_ = Site(name=site, sense_uri=sense_uri, query_url=query_url)
