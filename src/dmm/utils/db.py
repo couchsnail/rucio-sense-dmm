@@ -2,7 +2,8 @@ import logging
 import ipaddress
 from sqlalchemy import text, or_
 
-from dmm.db.models import Request, Site, Endpoint, Mesh, Bytes
+from dmm.db.models import Request, Site, Endpoint, Mesh
+#from dmm.db.models import Request, Site, Endpoint, Mesh, Throughput
 from dmm.utils.sense import get_allocation, free_allocation
 
 # Requests
@@ -51,6 +52,30 @@ def mark_fts_modified(req, session=None):
         "fts_modified": True
     })
     logging.debug(f"Marked fts_modified for {req.rule_id}")
+
+def update_bytes_at_t(req, volume, session=None):
+    current = req.bytes_at_t
+    #If no dictionary exists, create one
+    if current is None:
+        values = {
+                    'interval_1': 0, 
+                    'interval_2': 0, 
+                    'interval_3': 0,
+                    'interval_4':0,
+                    'interval_5':volume
+                  }
+        req.update({'bytes_at_t':values})
+    #Otherwise update values in the dictionary
+    else:
+        values = {
+            'interval_1': current['interval_2'], 
+            'interval_2': current['interval_3'], 
+            'interval_3': current['interval_4'],
+            'interval_4': current['interval_5'],
+            'interval_5':volume
+        }
+        req.update({'bytes_at_t':values})
+    logging.debug(f"Updated throughput calculations for {req.src_ipv6_block}")
 
 # Sites
 def get_site(site_name, attr=None, session=None):
@@ -105,31 +130,28 @@ def get_max_bandwidth(site, session=None):
     bandwidths = {m.max_bandwidth for m in mesh}
     return max(bandwidths) 
 
-#Bytes
-def get_interval_cursor(session=None):
-    return session.execute(text("SELECT * from bytes")).cursor
+# #Throughput
+# def get_interval_cursor(session=None):
+#     return session.execute(text("SELECT * from throughput")).cursor
 
-def check_intervals(volume, session=None):
-    cursor = get_interval_cursor
+# def check_intervals(ipv6, volume, session=None):
+#     #Check if nothing is in the database
+#     current_ip = session.query(Throughput).filter_by(ipv6=ipv6).first()
+#     #If nothing is in the database, create a new row and insert into the database
+#     if not current_ip:
+#         new_entry = Throughput(ipv6=ipv6, interval_5=volume)
+#         session.add(new_entry)
+#     #Otherwise move all values over one column left   
+#     else:
+#         values = {
+#         'interval_1': current_ip.interval_2,
+#         'interval_2': current_ip.interval_3,
+#         'interval_3': current_ip.interval_4,
+#         'interval_4': current_ip.interval_5,
+#         'interval_5': volume
+#         }
+#         current_ip.update(values)
 
-    #Check if nothing is in the database
-    query = f"SELECT COUNT(interval_5) FROM bytes WHERE interval_5 IS NOT NULL"
-    cursor.execute(query)
-    is_null = bool(cursor.fetchone()[0]==0)
-    #If nothing is in the database, insert given volume into interval_5
-    if is_null:
-        session.execute(f"INSERT INTO bytes (interval_5) VALUES ({volume})")
-    #If not, move all values over one interval, inserting this volumen into interval_5
-    else:
-        is_full = session.execute("SELECT COUNT(interval_1) FROM bytes WHERE interval_1 IS NOT NULL")
-        is_full = bool(is_full==0)
-        if is_full:
-            session.execute(f"UPDATE bytes SET interval_1 = NULL")
-        for i in range(5,1,-1):
-            cursor.execute(f"SELECT interval_{i} FROM bytes")
-            old_volume = cursor.fetchone()[0]
-            session.execute(f"UPDATE bytes SET interval_{i-1} = :old_volume")
-            session.execute(f"UPDATE bytes SET interval_{i} = :volume")
-
+#     session.commit()
 
     

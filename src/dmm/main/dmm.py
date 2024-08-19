@@ -80,7 +80,7 @@ class DMM:
         dmm_daemons = {
             decider: None,
             allocator: None,
-            online_monitoring: self.rucio_daemon_frequency
+            online_monitoring: {"query_frequency": 10}
         }
         fork(self.dmm_daemon_frequency, self.lock, dmm_daemons)
 

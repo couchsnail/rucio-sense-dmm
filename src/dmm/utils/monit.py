@@ -16,6 +16,7 @@ def prom_submit_query(query_dict) -> dict:
 
 def prom_get_val_from_response(response):
     """Extract desired value from typical location in Prometheus response"""
+    print(response)
     return response["data"]["result"][0]["value"][1]
     
 def prom_get_interface(ipv6) -> str:
@@ -27,15 +28,19 @@ def prom_get_interface(ipv6) -> str:
                 return (metric["metric"]["device"], metric["metric"]["instance"], metric["metric"]["job"], metric["metric"]["sitename"])
 
 def prom_get_all_interface(ipv6) -> str:
+    """
+    Gets all interfaces with ipv6 addresses matching the given ipv6
+    """
+    #Change ipv6_pattern if needed
     ipv6_pattern = f"{ipv6[:-3]}[0-9a-fA-F]{{1,4}}"
     query = f"node_network_address_info{{address=~'{ipv6_pattern}'}}"
     response = prom_submit_query({"query": query})
 
     interfaces = []
     
-    if response["status"] == "success":
-        ipv6_pattern = rf'{ipv6[:-3]}[0-9a-fA-F]{{1,4}}'
-        
+    #If response is a successful transfer and matches the given ipv6,
+    #adds its interface data to the list
+    if response["status"] == "success":        
         for metric in response["data"]["result"]:
             if re.match(ipv6_pattern, metric["metric"]["address"]):
                 interfaces.append(
@@ -72,8 +77,6 @@ def prom_get_all_bytes_at_t(time, ipv6) -> float:
     ipv6 address
     """
     transfers = prom_get_all_interface(ipv6) 
-    #Unsure which value to use for expected volume of data - FTS?
-    expected_vol = 0
     total_bytes = 0
     for transfer in transfers:
         device, instance, job, sitename = transfer[0], transfer[1], transfer[2], transfer[3]
@@ -83,19 +86,17 @@ def prom_get_all_bytes_at_t(time, ipv6) -> float:
         response = prom_submit_query({"query": metric, "time": time})
         if response is not None and response["status"] == "success":
             bytes_at_t = prom_get_val_from_response(response)
-            expected_bytes_at_t = response['data']['result'][0]['value'][0]
         else:
             raise Exception(f"query {metric} failed")
-        #Change to actual mathematical value
-        expected_vol += float(expected_bytes_at_t)
+        #Add the bytes at given time to running total
         total_bytes += float(bytes_at_t)
-    return expected_vol, total_bytes
+    return total_bytes
 
 #t_avg_over should be time when transfer ended for given rule_id
 #time stamp rule ending - time stamp provision kicking in
 #The IP address here is src_ipv6 + dst_ipv6 (only src_ipv6 for now)
 def prom_get_throughput_at_t(time, ipv6, t_avg_over=None) -> float:
-    bytes_transmitted = sum([i * prom_get_all_bytes_at_t(time + i * 0.5 * t_avg_over, ipv6)[1] for i in [-1,1]])
+    bytes_transmitted = sum([i * prom_get_all_bytes_at_t(time + i * 0.5 * t_avg_over, ipv6) for i in [-1,1]])
     #bytes_transmitted = sum([i * prom_get_total_bytes_at_t(time + i * 0.5 * t_avg_over, ipv6) for i in [-1,1]])
     # TODO account for bin edges
     return bytes_transmitted / (t_avg_over)
@@ -122,7 +123,7 @@ def fts_submit_job_query(rule_id):
                 }]
             }
         },
-        #"_source": ["data.tr_timestamp_start", "data.tr_timestamp_complete"]
+        "_source": ["data.tr_timestamp_start", "data.tr_timestamp_complete"]
     }
     data_string = json.dumps(data)
     response = requests.get(query_addr, data=data_string, headers=headers).json()
@@ -155,29 +156,13 @@ transfer state (might be redundant with circuit status), transfer start time,
     #Middle timestamp are the ones you care about (how long it took to be transferred)
 
 if __name__ == "__main__":
-    result_query = fts_submit_job_query("95069e5365bd4381b9b2668ce739047b")
-    print(result_query)
-    
-    # size = 0
-    # for transfer in result_query:
-    #     size += transfer['file_size']
-    
-    # print(size)
-
-    # timestamps = fts_get_timestamps(result_query)
-    # start_timestamps = [entry['tr_timestamp_start'] for entry in timestamps]
-    # complete_timestamps = [entry['tr_timestamp_complete'] for entry in timestamps]
-    # min_complete_timestamp = min(start_timestamps)
-    # max_complete_timestamp = max(complete_timestamps)
-    # time_dif = max_complete_timestamp - min_complete_timestamp
-
-    # a = prom_get_all_interface("2001:48d0:3001:114::700")
-    # #print(a)
-    # from datetime import datetime
-    # import time
-    # timestamp = round(datetime.timestamp(datetime.now()))
-    # expected, bytes = prom_get_all_bytes_at_t(timestamp, "2001:48d0:3001:114::700")
-    # print(f"Expected: {expected}, Bytes: {bytes}")
+    a = prom_get_all_interface("2001:48d0:3001:112::/64")
+    print(a)
+    from datetime import datetime
+    import time
+    timestamp = round(datetime.timestamp(datetime.now()))
+    bytes = prom_get_all_bytes_at_t(timestamp, "2001:48d0:3001:112::/64")
+    print(f"=Bytes: {bytes}")
 
     # ipv6 = "2001:48d0:3001:114::700"
     # device, instance, job, sitename = prom_get_interface(ipv6)
