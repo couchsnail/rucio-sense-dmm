@@ -130,28 +130,4 @@ def get_max_bandwidth(site, session=None):
     bandwidths = {m.max_bandwidth for m in mesh}
     return max(bandwidths) 
 
-# #Throughput
-# def get_interval_cursor(session=None):
-#     return session.execute(text("SELECT * from throughput")).cursor
-
-# def check_intervals(ipv6, volume, session=None):
-#     #Check if nothing is in the database
-#     current_ip = session.query(Throughput).filter_by(ipv6=ipv6).first()
-#     #If nothing is in the database, create a new row and insert into the database
-#     if not current_ip:
-#         new_entry = Throughput(ipv6=ipv6, interval_5=volume)
-#         session.add(new_entry)
-#     #Otherwise move all values over one column left   
-#     else:
-#         values = {
-#         'interval_1': current_ip.interval_2,
-#         'interval_2': current_ip.interval_3,
-#         'interval_3': current_ip.interval_4,
-#         'interval_4': current_ip.interval_5,
-#         'interval_5': volume
-#         }
-#         current_ip.update(values)
-
-#     session.commit()
-
     

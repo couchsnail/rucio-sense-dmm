@@ -7,9 +7,6 @@ from dmm.db.models import *
 from dmm.utils.monit import prom_get_throughput_at_t, fts_submit_job_query, prom_get_all_bytes_at_t
 from dmm.utils.db import get_requests, get_request_cursor, update_bytes_at_t
 
-engine=get_engine()
-BASE.metadata.create_all(bind=engine, checkfirst=True)
-
 '''
 What we need to accomplish here:
 1) Get all PROVISIONED transfers that have a sense circuit created
