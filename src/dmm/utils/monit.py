@@ -1,6 +1,8 @@
 import json
 import requests
 import re
+import statistics
+from datetime import datetime, timedelta
 
 from dmm.utils.config import config_get
 
@@ -123,7 +125,7 @@ def fts_submit_job_query(rule_id):
                 }]
             }
         },
-        "_source": ["data.tr_timestamp_start", "data.tr_timestamp_complete"]
+        #"_source": ["data.tr_timestamp_start", "data.tr_timestamp_complete"]
     }
     data_string = json.dumps(data)
     response = requests.get(query_addr, data=data_string, headers=headers).json()
@@ -131,8 +133,13 @@ def fts_submit_job_query(rule_id):
     timestamps = [hit["_source"]["data"] for hit in response["hits"]["hits"]]
     return timestamps
 
+#Returns timestamps and file size from FTS
 def fts_get_timestamps(response):
-    timestamps = [hit["_source"]["data"] for hit in response["hits"]["hits"]]
+    timestamps = [{'tr_timestamp_start': r['tr_timestamp_start'], 
+                   'tr_timestamp_complete': r['tr_timestamp_complete'],
+                   'file_size': r['file_size']} 
+                   for r in response]
+    
     return timestamps
     
 '''
@@ -155,20 +162,87 @@ transfer state (might be redundant with circuit status), transfer start time,
     #find all transfers when throughput is low, separate from when all transfers are large
     #Middle timestamp are the ones you care about (how long it took to be transferred)
 
-if __name__ == "__main__":
-    a = prom_get_all_interface("2001:48d0:3001:112::/64")
-    print(a)
-    from datetime import datetime
-    import time
-    timestamp = round(datetime.timestamp(datetime.now()))
-    bytes = prom_get_all_bytes_at_t(timestamp, "2001:48d0:3001:112::/64")
-    print(f"=Bytes: {bytes}")
-
-    # ipv6 = "2001:48d0:3001:114::700"
-    # device, instance, job, sitename = prom_get_interface(ipv6)
-    # query_params = f"device=\"{device}\",instance=\"{instance}\",job=\"{job}\",sitename=\"{sitename}\""
-    # metric = f"node_network_transmit_bytes_total{{{query_params}}}"
-    # response = prom_submit_query({"query": metric, "time": timestamp})
-    # print(response)
-    # print(response['data']['result'][0]['value'][0])
+def calculate_throughput_sliding_window_fixed(transfers, start_time, end_time, window_size=None, step_size=None):
+    # Converts timestamps from milliseconds into datetime format
+    start_time = datetime.fromtimestamp(start_time / 1000.0)
+    end_time = datetime.fromtimestamp(end_time / 1000.0)
     
+    # Calculate the total seconds between start_time and end_time
+    total_seconds = (end_time - start_time).total_seconds()
+    #Can adjust this based on how big we want the windows to actually be
+    if window_size == None or step_size==None:
+        window_size = total_seconds / 20
+        step_size = window_size / 2
+        num_windows = int((total_seconds - window_size) // step_size) + 1
+    
+    throughputs = []
+
+    #Iterates through each window
+    for i in range(num_windows):
+        #Calculates the window start as time added to start_time based on step size
+        window_start = start_time + timedelta(seconds=i * step_size)
+        #Calculates window end as time added to window start time based on window size
+        window_end = window_start + timedelta(seconds=window_size)
+        
+        #Holds the throughput that happened within a given window
+        window_throughput = 0
+
+        for transfer in transfers:
+            transfer_start, transfer_end, file_size = transfer.values()            
+            # Converts timestamps from milliseconds into datetime format, may need to change timezone
+            transfer_start = datetime.fromtimestamp(transfer_start / 1000.0, tz=timezone.utc)
+            transfer_end = datetime.fromtimestamp(transfer_end / 1000.0, tz=timezone.utc)
+            
+            #If the transfer doesn't overlap with the given window, move on
+            if transfer_end <= window_start or transfer_start >= window_end:
+                continue
+            
+            #Otherwise calculate the overlap of the transfer with the given window
+            overlap_start = max(window_start, transfer_start)
+            overlap_end = min(window_end, transfer_end)
+            overlap_seconds = (overlap_end - overlap_start).total_seconds()
+            
+            # Calculate the fraction of the transfer that falls within this window
+            total_transfer_seconds = (transfer_end - transfer_start).total_seconds()
+            transfer_fraction = (overlap_seconds / total_transfer_seconds) * file_size
+            
+            # Add the fraction of the file size to the window_throughput
+            window_throughput += transfer_fraction
+        
+        #Right now throughput is in bytes per second, can change this if necessary
+        throughputs.append(window_throughput / window_size)
+        
+    # Calculate average and standard deviation, can add additional metrics if needed
+    average_throughput = sum(throughputs)/len(throughputs)
+    std_deviation = statistics.pstdev(throughputs)
+    
+    return throughputs, average_throughput, std_deviation
+
+if __name__ == "__main__":
+   result_query = fts_submit_job_query("95069e5365bd4381b9b2668ce739047b")
+   print(result_query)
+   timestamps = fts_get_timestamps(result_query)
+   start_sorted_timestamps = sorted(timestamps, key=lambda x: x['tr_timestamp_start'])
+   comp_sorted_timestamps = sorted(timestamps, key=lambda x: x['tr_timestamp_complete'])
+   
+   min_complete_timestamp = min(start_sorted_timestamps)
+   max_complete_timestamp = max(comp_sorted_timestamps)
+   
+   now = datetime.now()
+   
+   # Find how many days ago last Thursday was
+   days_since_thursday = (now.weekday() - 3) % 7  # 3 corresponds to Thursday
+   
+   #Calculate the datetime for last Thursday at 10:30 AM
+   last_thursday = now - timedelta(days=days_since_thursday)
+   last_thursday_at_1030 = last_thursday.replace(hour=10, minute=30, second=0, microsecond=0)
+
+   # Convert to timestamp (milliseconds since epoch)
+   timestamp = int(last_thursday_at_1030.timestamp() * 1000)
+
+   start_bytes = prom_get_all_bytes_at_t(timestamp,"2001:48d0:3001:112::/64")
+   print(start_bytes)
+#    end_bytes = prom_get_all_bytes_at_t(max_complete_timestamp,"2001:48d0:3001:112::/64")
+#    print(end_bytes)
+
+       

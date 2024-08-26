@@ -2,10 +2,11 @@ from flask import Flask, Response, render_template, url_for, request
 import logging
 import json
 import os
+from datetime import datetime
 
 from dmm.db.session import databased
-from dmm.utils.db import get_request_from_id, get_request_cursor
-from dmm.utils.monit import prom_get_throughput_at_t, fts_submit_job_query
+from dmm.utils.db import get_request_from_id, get_request_cursor, get_requests, update_bytes_at_t
+from dmm.utils.monit import prom_get_throughput_at_t, fts_submit_job_query, prom_get_all_bytes_at_t
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 templates_folder = os.path.join(current_directory, "templates")
@@ -32,7 +33,7 @@ def handle_client(rule_id, session=None):
         response.headers.add("Content-Type", "text/plain")
         return response
 
-@frontend_app.route("/status", methods=["GET", "POST"])
+@frontend_app.route("/", methods=["GET", "POST"])
 @databased
 def get_dmm_status(session=None):
     cursor = get_request_cursor(session=session)
@@ -57,19 +58,46 @@ def open_rule_details(rule_id,session=None):
     try:
         req = get_request_from_id(rule_id, session=session)
         cursor = get_request_cursor(session=session)
-        cursor.execute(f"SELECT rule_id, bandwidth, sense_circuit_status, src_ipv6_block, sense_provisioned_at FROM requests WHERE rule_id = '{req.rule_id}'")
+        cursor.execute(f"SELECT rule_id, transfer_status, bandwidth, sense_circuit_status, src_ipv6_block, bandwidth, sense_provisioned_at FROM requests WHERE rule_id = '{req.rule_id}'")
         data = cursor.fetchone()
-        rule_id, bandwidth, sense_circuit_status, src_ipv6, prov_time = data
+        rule_id, bandwidth, sense_circuit_status, src_ipv6, bandwidth, prov_time = data
         logging.debug(f"Cursor data: {data}")
-        fts_query = fts_submit_job_query(rule_id)
-        logging.debug(fts_query)
-        final_state, error = fts_query['t_final_transfer_state'], fts_query['tr_error_category']
-        #prom_get_throughput_at_t()
-        logging.debug(f"Final state: {final_state}, Error: {error}")
+
+        #Can edit this if needed for testing
+        # if prov_time is not None:
+        #     timestamp = round(datetime.timestamp(datetime.now()))
+        #     current_volume = prom_get_all_bytes_at_t(timestamp, src_ipv6)
+        #     update_bytes_at_t(req, current_volume, session=session)
+        #     bandwidth_volumes = req.bytes_at_t
+        #     total = sum(bandwidth_volumes.values())
+        #     current_throughput = (total) / (50) #Change this to 5 * self.sense_daemon_frequency
+
+        #     if abs(bandwidth - current_throughput) <= (0.10 * bandwidth):
+        #         dmm_status = "Transfer throughput in excellent condition"
+        #     elif abs(bandwidth - current_throughput) <= (0.2 * bandwidth):
+        #         dmm_status = "Transfer throughput in OK condition"
+        #     else:
+        #         dmm_status = "Errors occurring in transfer"
+        # else:
+        #     dmm_status = "No bandwidth has been provisioned"
         
         return render_template("details.html",rule_id=rule_id, bandwidth=bandwidth, 
-                               sense_circuit_status=sense_circuit_status)
-                            #    t_final_state=final_state, tr_error_category=error)
+                                sense_circuit_status=sense_circuit_status)
+                                #dmm_status=dmm_status)
+        
+        # fts_query = fts_submit_job_query(rule_id)
+        #fts_query = fts_submit_job_query("95069e5365bd4381b9b2668ce739047b")
+        # metrics = fts_query['_shards']
+        # success_rate = metrics['successful'] / metrics['total']
+        # logging.debug(f"Success rate: {success_rate}")
+
+        # timestamps = fts_get_timestamps(fts_query)
+        # complete_timestamps = [entry['tr_timestamp_complete'] for entry in timestamps]
+        # max_complete_timestamp = max(complete_timestamps)
+        # #Change this to value that would actually work
+        # dif = (max_complete_timestamp - prov_time) / 20
+        # prom_throughput = prom_get_throughput_at_t(src_ipv6, prov_time, t_avg_over=dif)
+
     except Exception as e:
         logging.error(e)
         return "Failed to retrieve rule info\n"
