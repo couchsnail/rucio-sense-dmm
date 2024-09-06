@@ -60,30 +60,30 @@ def open_rule_details(rule_id,session=None):
         cursor = get_request_cursor(session=session)
         cursor.execute(f"SELECT rule_id, transfer_status, bandwidth, sense_circuit_status, src_ipv6_block, bandwidth, sense_provisioned_at FROM requests WHERE rule_id = '{req.rule_id}'")
         data = cursor.fetchone()
-        rule_id, bandwidth, sense_circuit_status, src_ipv6, bandwidth, prov_time = data
+        rule_id, transfer_status, bandwidth, sense_circuit_status, src_ipv6, bandwidth, prov_time = data
         logging.debug(f"Cursor data: {data}")
 
         #Can edit this if needed for testing
-        # if prov_time is not None:
-        #     timestamp = round(datetime.timestamp(datetime.now()))
-        #     current_volume = prom_get_all_bytes_at_t(timestamp, src_ipv6)
-        #     update_bytes_at_t(req, current_volume, session=session)
-        #     bandwidth_volumes = req.bytes_at_t
-        #     total = sum(bandwidth_volumes.values())
-        #     current_throughput = (total) / (50) #Change this to 5 * self.sense_daemon_frequency
+        if prov_time is not None:
+            timestamp = round(datetime.timestamp(datetime.now()))
+            current_volume = prom_get_all_bytes_at_t(timestamp, src_ipv6)
+            update_bytes_at_t(req, current_volume, session=session)
+            bandwidth_volumes = req.bytes_at_t
+            total = sum(bandwidth_volumes.values())
+            current_throughput = (total) / (50) #Change this to 5 * self.sense_daemon_frequency
 
-        #     if abs(bandwidth - current_throughput) <= (0.10 * bandwidth):
-        #         dmm_status = "Transfer throughput in excellent condition"
-        #     elif abs(bandwidth - current_throughput) <= (0.2 * bandwidth):
-        #         dmm_status = "Transfer throughput in OK condition"
-        #     else:
-        #         dmm_status = "Errors occurring in transfer"
-        # else:
-        #     dmm_status = "No bandwidth has been provisioned"
+            if abs(bandwidth - current_throughput) <= (0.10 * bandwidth):
+                dmm_status = "Transfer throughput in excellent condition"
+            elif abs(bandwidth - current_throughput) <= (0.2 * bandwidth):
+                dmm_status = "Transfer throughput in OK condition"
+            else:
+                dmm_status = "Errors occurring in transfer"
+        else:
+            dmm_status = "No bandwidth has been provisioned"
         
         return render_template("details.html",rule_id=rule_id, bandwidth=bandwidth, 
-                                sense_circuit_status=sense_circuit_status)
-                                #dmm_status=dmm_status)
+                                sense_circuit_status=sense_circuit_status,
+                                dmm_status=dmm_status)
         
         # fts_query = fts_submit_job_query(rule_id)
         #fts_query = fts_submit_job_query("95069e5365bd4381b9b2668ce739047b")

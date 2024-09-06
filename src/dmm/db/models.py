@@ -48,6 +48,9 @@ class Request(BASE, ModelBase):
     fts_modified = Column(Boolean())
     sense_provisioned_at = Column(DateTime())
     bytes_at_t = Column(JSON())
+    #Remove if necessary
+    total_bytes = Column(Integer())
+    total_sec = Column(Integer())
 
     def __init__(self, **kwargs):
         super(Request, self).__init__(**kwargs)
@@ -88,15 +91,3 @@ class Mesh(BASE, ModelBase):
 
     def __init__(self, **kwargs):
         super(Mesh, self).__init__(**kwargs)
-
-# class Throughput(BASE, ModelBase):
-#     __tablename__ = "throughput"
-#     ipv6 = Column(String(255), primary_key=True)
-#     interval_1 = Column(Integer())
-#     interval_2 = Column(Integer())
-#     interval_3 = Column(Integer())
-#     interval_4 = Column(Integer())
-#     interval_5 = Column(Integer())
-
-#     def __init__(self, **kwargs):
-#         super(Throughput, self).__init__(**kwargs)

@@ -219,29 +219,29 @@ def calculate_throughput_sliding_window_fixed(transfers, start_time, end_time, w
     return throughputs, average_throughput, std_deviation
 
 if __name__ == "__main__":
-   result_query = fts_submit_job_query("95069e5365bd4381b9b2668ce739047b")
+   result_query = fts_submit_job_query("test2")
    print(result_query)
-   timestamps = fts_get_timestamps(result_query)
-   start_sorted_timestamps = sorted(timestamps, key=lambda x: x['tr_timestamp_start'])
-   comp_sorted_timestamps = sorted(timestamps, key=lambda x: x['tr_timestamp_complete'])
+#    timestamps = fts_get_timestamps(result_query)
+#    start_sorted_timestamps = sorted(timestamps, key=lambda x: x['tr_timestamp_start'])
+#    comp_sorted_timestamps = sorted(timestamps, key=lambda x: x['tr_timestamp_complete'])
    
-   min_complete_timestamp = min(start_sorted_timestamps)
-   max_complete_timestamp = max(comp_sorted_timestamps)
+#    min_complete_timestamp = min(start_sorted_timestamps)
+#    max_complete_timestamp = max(comp_sorted_timestamps)
    
-   now = datetime.now()
+#    now = datetime.now()
    
-   # Find how many days ago last Thursday was
-   days_since_thursday = (now.weekday() - 3) % 7  # 3 corresponds to Thursday
+#    # Find how many days ago last Thursday was
+#    days_since_thursday = (now.weekday() - 3) % 7  # 3 corresponds to Thursday
    
-   #Calculate the datetime for last Thursday at 10:30 AM
-   last_thursday = now - timedelta(days=days_since_thursday)
-   last_thursday_at_1030 = last_thursday.replace(hour=10, minute=30, second=0, microsecond=0)
+#    #Calculate the datetime for last Thursday at 10:30 AM
+#    last_thursday = now - timedelta(days=days_since_thursday)
+#    last_thursday_at_1030 = last_thursday.replace(hour=10, minute=30, second=0, microsecond=0)
 
-   # Convert to timestamp (milliseconds since epoch)
-   timestamp = int(last_thursday_at_1030.timestamp() * 1000)
+#    # Convert to timestamp (milliseconds since epoch)
+#    timestamp = int(last_thursday_at_1030.timestamp() * 1000)
 
-   start_bytes = prom_get_all_bytes_at_t(timestamp,"2001:48d0:3001:112::/64")
-   print(start_bytes)
+#    start_bytes = prom_get_all_bytes_at_t(timestamp,"2001:48d0:3001:112::/64")
+#    print(start_bytes)
 #    end_bytes = prom_get_all_bytes_at_t(max_complete_timestamp,"2001:48d0:3001:112::/64")
 #    print(end_bytes)
 
