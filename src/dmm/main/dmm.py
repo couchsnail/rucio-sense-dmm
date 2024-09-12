@@ -25,7 +25,7 @@ from dmm.daemons.rucio import preparer, rucio_modifier, finisher
 from dmm.daemons.fts import fts_modifier
 from dmm.daemons.sense import status_updater, stager, provision, sense_modifier, canceller, deleter
 from dmm.daemons.core import decider, allocator
-from dmm.daemons.monit import online_monitoring
+from dmm.daemons.monit import online_monitoring, offline_monitoring
 from dmm.daemons.sites import refresh_site_db
 from dmm.frontend.frontend import frontend_app
 
@@ -80,7 +80,8 @@ class DMM:
         dmm_daemons = {
             decider: None,
             allocator: None,
-            online_monitoring: {"query_frequency": 10}
+            online_monitoring: {"query_frequency": 10},
+            offline_monitoring: None
         }
         fork(self.dmm_daemon_frequency, self.lock, dmm_daemons)
 

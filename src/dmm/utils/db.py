@@ -53,17 +53,21 @@ def mark_fts_modified(req, session=None):
     })
     logging.debug(f"Marked fts_modified for {req.rule_id}")
 
+# Used to update the bytes dictionary for throughput calculation
 def update_bytes_at_t(req, volume, interval, session=None):
+    #This section is for the extra columns added to requests
+    # If there are no total bytes, create empty dictionary
     if req.total_bytes is None or req.total_sec is None:
         req.update({'total_bytes': 0, 'total_sec': 0})
     else:
+        # Add values to dictionary
         if volume!=0:
             bytes = req.total_bytes + volume
             sec = req.total_sec + interval
             req.update({'total_bytes': bytes, 'total_sec': sec})
     
     current = req.bytes_at_t
-    #If no dictionary exists, create one
+    # If no dictionary exists, create one
     if current is None:
         values = {
                     'interval_1': 0, 
@@ -73,7 +77,7 @@ def update_bytes_at_t(req, volume, interval, session=None):
                     'interval_5':volume
                   }
         req.update({'bytes_at_t':values})
-    #Otherwise update values in the dictionary
+    # Otherwise update values in the dictionary
     else:
         values = {
             'interval_1': current['interval_2'], 

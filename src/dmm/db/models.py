@@ -48,7 +48,8 @@ class Request(BASE, ModelBase):
     fts_modified = Column(Boolean())
     sense_provisioned_at = Column(DateTime())
     bytes_at_t = Column(JSON())
-    #Remove if necessary
+    # Added these metrics for throughput calculation. 
+    # Remove if necessary
     total_bytes = Column(Integer())
     total_sec = Column(Integer())
 

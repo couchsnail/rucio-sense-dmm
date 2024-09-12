@@ -66,10 +66,10 @@
                     <ul>Bandwidth: {{ bandwidth }}</ul>
                     <ul>Circuit Status: {{ sense_circuit_status }}</ul>
                     <ul>State of rule transfer: {{ dmm_status }}</ul>
-                    <!-- <ul>Final Transfer State: {{ t_final_state }} </ul>
-                    <ul>Transfer Error: {{ tr_error_category }} </ul>
-                    <ul>Transfer Success Rate: {{ success_rate }} </ul>
-                    <ul>Prometheus Throughput: {{ prom_throughput }} </ul> -->
+                    <ul>Final Transfer State: {{ final_state }} </ul>
+                    <ul>Errors in transfers: {{ error_transfers }} </ul>
+                    <ul>Average FTS throughput: {{ avg_fts_throughput }} </ul>
+                    <ul>Final Prometheus throughput: {{ prom_throughput }} </ul>
                 </tr>
             </thead>  
 </html>

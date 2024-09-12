@@ -2,7 +2,7 @@ import json
 import requests
 import re
 import statistics
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from dmm.utils.config import config_get
 
@@ -94,12 +94,11 @@ def prom_get_all_bytes_at_t(time, ipv6) -> float:
         total_bytes += float(bytes_at_t)
     return total_bytes
 
-#t_avg_over should be time when transfer ended for given rule_id
-#time stamp rule ending - time stamp provision kicking in
-#The IP address here is src_ipv6 + dst_ipv6 (only src_ipv6 for now)
+# t_avg_over should be time when transfer ended for given rule_id
+# time stamp rule ending - time stamp provision kicking in
+# The IP address here is src_ipv6 + dst_ipv6 (only src_ipv6 for now)
 def prom_get_throughput_at_t(time, ipv6, t_avg_over=None) -> float:
     bytes_transmitted = sum([i * prom_get_all_bytes_at_t(time + i * 0.5 * t_avg_over, ipv6) for i in [-1,1]])
-    #bytes_transmitted = sum([i * prom_get_total_bytes_at_t(time + i * 0.5 * t_avg_over, ipv6) for i in [-1,1]])
     # TODO account for bin edges
     return bytes_transmitted / (t_avg_over)
 
@@ -107,7 +106,10 @@ def fts_get_val_from_response(response):
     """Extract desired value from typical location in Prometheus response"""
     return response["hits"]["hits"][0]["_source"]["data"]
 
-def fts_submit_job_query(rule_id):    
+# Modified to include list of values we want from the fts query
+# Values should be in the format "data.[PARAMETER_NAME]"
+# If left empty, will get all possible values
+def fts_submit_job_query(rule_id, query_params=[]):    
     fts_host = config_get("fts", "monit_host")
     fts_token = config_get("fts", "monit_auth_token")
     headers = {"Authorization": f"Bearer {fts_token}", "Content-Type": "application/json"}
@@ -125,79 +127,66 @@ def fts_submit_job_query(rule_id):
                 }]
             }
         },
-        #"_source": ["data.tr_timestamp_start", "data.tr_timestamp_complete"]
+        "_source": query_params
     }
     data_string = json.dumps(data)
     response = requests.get(query_addr, data=data_string, headers=headers).json()
-    #return response
     timestamps = [hit["_source"]["data"] for hit in response["hits"]["hits"]]
     return timestamps
 
-#Returns timestamps and file size from FTS
-def fts_get_timestamps(response):
-    timestamps = [{'tr_timestamp_start': r['tr_timestamp_start'], 
-                   'tr_timestamp_complete': r['tr_timestamp_complete'],
-                   'file_size': r['file_size']} 
-                   for r in response]
-    
-    return timestamps
-    
-'''
-transfer state (might be redundant with circuit status), transfer start time,
-                    transfer end time, transfer completion time, transfer operation time (how long it took),
-                    transfer file size, volume of data transferred, number of retries, errors (if any)
-'''
-#Make sure to be able to call this from the rule_id on frontend (along with get_throughput_at_t)
+# Returns timestamps and file size from FTS
+# This method may be redundant, can delete if needed
+def fts_check_transfer_state(rule_id):
+    success = fts_submit_job_query(rule_id, ['data.t_final_transfer_state'])
+    if success=='Ok':
+        return True
+    else:
+        return False    
 
-#Objective: Find out if transfer failed/succeeded based on information in the query
-                #Show the error
-                #Correlate the metrics from FTS/Prometheus (do this after)
-
-    #Throughput calculation: All FTS records that start after allocation timestamp
-    #How much data is transferred at a given time - bytes/second
-    #For a given rule, see the throughput (best effort, worst, etc.)
-    #Need to dissect before and after - if transferring a petabyte and allocation takes 10 min
-    #-See short time where throughput is bad, time when is large
-
-    #find all transfers when throughput is low, separate from when all transfers are large
-    #Middle timestamp are the ones you care about (how long it took to be transferred)
-
+#Transfers must be an iterable with tr_timestamp_start, tr_timestamp_end, and file_size
 def calculate_throughput_sliding_window_fixed(transfers, start_time, end_time, window_size=None, step_size=None):
+    '''
+    Calculates the throughput using the sliding window method
+    '''
     # Converts timestamps from milliseconds into datetime format
-    start_time = datetime.fromtimestamp(start_time / 1000.0)
-    end_time = datetime.fromtimestamp(end_time / 1000.0)
+    start_time = datetime.fromtimestamp(start_time / 1000.0, tz=timezone.utc)
+    end_time = datetime.fromtimestamp(end_time / 1000.0, tz=timezone.utc)
     
     # Calculate the total seconds between start_time and end_time
     total_seconds = (end_time - start_time).total_seconds()
-    #Can adjust this based on how big we want the windows to actually be
-    if window_size == None or step_size==None:
+    # Can adjust this based on how big we want the windows to actually be
+    if window_size == None: 
         window_size = total_seconds / 20
+    if step_size==None:    
         step_size = window_size / 2
         num_windows = int((total_seconds - window_size) // step_size) + 1
     
     throughputs = []
 
-    #Iterates through each window
+    # Iterates through each window
     for i in range(num_windows):
-        #Calculates the window start as time added to start_time based on step size
+        # Calculates the window start as time added to start_time based on step size
         window_start = start_time + timedelta(seconds=i * step_size)
-        #Calculates window end as time added to window start time based on window size
+        # Calculates window end as time added to window start time based on window size
         window_end = window_start + timedelta(seconds=window_size)
         
-        #Holds the throughput that happened within a given window
+        # Holds the throughput that happened within a given window
         window_throughput = 0
 
+        # Get data needed for calculation
         for transfer in transfers:
-            transfer_start, transfer_end, file_size = transfer.values()            
+            transfer_start = transfer['tr_timestamp_start']
+            transfer_end = transfer['tr_timestamp_complete']
+            file_size = transfer['file_size']          
             # Converts timestamps from milliseconds into datetime format, may need to change timezone
             transfer_start = datetime.fromtimestamp(transfer_start / 1000.0, tz=timezone.utc)
             transfer_end = datetime.fromtimestamp(transfer_end / 1000.0, tz=timezone.utc)
             
-            #If the transfer doesn't overlap with the given window, move on
+            # If the transfer doesn't overlap with the given window, move on
             if transfer_end <= window_start or transfer_start >= window_end:
                 continue
             
-            #Otherwise calculate the overlap of the transfer with the given window
+            # Otherwise calculate the overlap of the transfer with the given window
             overlap_start = max(window_start, transfer_start)
             overlap_end = min(window_end, transfer_end)
             overlap_seconds = (overlap_end - overlap_start).total_seconds()
@@ -209,7 +198,7 @@ def calculate_throughput_sliding_window_fixed(transfers, start_time, end_time, w
             # Add the fraction of the file size to the window_throughput
             window_throughput += transfer_fraction
         
-        #Right now throughput is in bytes per second, can change this if necessary
+        # Right now throughput is in bytes per second, can change this if necessary
         throughputs.append(window_throughput / window_size)
         
     # Calculate average and standard deviation, can add additional metrics if needed
@@ -218,31 +207,30 @@ def calculate_throughput_sliding_window_fixed(transfers, start_time, end_time, w
     
     return throughputs, average_throughput, std_deviation
 
+# Everything here is purely for testing
 if __name__ == "__main__":
-   result_query = fts_submit_job_query("test2")
-   print(result_query)
-#    timestamps = fts_get_timestamps(result_query)
-#    start_sorted_timestamps = sorted(timestamps, key=lambda x: x['tr_timestamp_start'])
-#    comp_sorted_timestamps = sorted(timestamps, key=lambda x: x['tr_timestamp_complete'])
-   
-#    min_complete_timestamp = min(start_sorted_timestamps)
-#    max_complete_timestamp = max(comp_sorted_timestamps)
-   
-#    now = datetime.now()
-   
-#    # Find how many days ago last Thursday was
-#    days_since_thursday = (now.weekday() - 3) % 7  # 3 corresponds to Thursday
-   
-#    #Calculate the datetime for last Thursday at 10:30 AM
-#    last_thursday = now - timedelta(days=days_since_thursday)
-#    last_thursday_at_1030 = last_thursday.replace(hour=10, minute=30, second=0, microsecond=0)
+    query_params = ['data.tr_id','data.tr_timestamp_start', 'data.tr_timestamp_complete', 'file_size',
+                    'data.t__error_message','data.t_failure_phase','data.t_final_transfer_state']
+    fts_query = fts_submit_job_query("ab8c31e2835b473d8a8aaf7cc27c86e6", query_params)
+    print(fts_query[0]['t__error_message'])
+    
+    start_timestamp = min([s['tr_timestamp_start'] for s in fts_query])
+    comp_timestamp = max([s['tr_timestamp_complete'] for s in fts_query])
+    errors = {}
+    completed_transfers = []
 
-#    # Convert to timestamp (milliseconds since epoch)
-#    timestamp = int(last_thursday_at_1030.timestamp() * 1000)
-
-#    start_bytes = prom_get_all_bytes_at_t(timestamp,"2001:48d0:3001:112::/64")
-#    print(start_bytes)
-#    end_bytes = prom_get_all_bytes_at_t(max_complete_timestamp,"2001:48d0:3001:112::/64")
-#    print(end_bytes)
-
+    for transfer in fts_query:
+        if transfer['t_final_transfer_state'] == "Ok":
+            completed_transfers.append(transfer)
+        else:
+            msg = transfer['t__error_message']
+            phase = transfer['t_failure_phase']
+            errors.update({
+                transfer['tr_id']: [msg,phase]
+            })
+    
+    throughputs, average_throughput, std_deviation = calculate_throughput_sliding_window_fixed(completed_transfers, start_timestamp, comp_timestamp)
+    print(f"Throughputs: {throughputs}")
+    print(f"Average throughput: {average_throughput}")
+    print(f"Standard deviation: {std_deviation}")
        
